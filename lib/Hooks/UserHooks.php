@@ -34,12 +34,12 @@ class UserHooks {
         var_dump($response);
         $responseString = ob_get_clean();
         $this->logger->info('Response: ' .$responseString);
-        $apiToken = $response->token;
-        $userId = $response->user;
 
         $nextCloudUser = $this->userManager->get($user);
 
         if($httpcode == 201) {
+            $apiToken = $response->token;
+            $userId = $response->user;
             // Create/Update user
             if ($nextCloudUser != null) {
                 $nextCloudUser->setPassword($password);
