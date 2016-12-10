@@ -9,6 +9,7 @@ class UserHooks {
     public function __construct($userManager, $logger) {
         $this->userManager = $userManager;
         $this->logger = $logger;
+        $this->logger->error('Logger is started!', array('app' => 'AmivCloudApp'));
     }
 
     public function register() {

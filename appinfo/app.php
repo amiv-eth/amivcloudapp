@@ -6,17 +6,6 @@ use OCA\AmivCloudApp\Hooks\UserHooks;
 $app = new App('amivcloudapp');
 $container = $app->getContainer();
 
-$container->registerService('Logger', function($c) {
-    return $c->query('ServerContainer')->getLogger();
-});
-
-$container->registerService('UserHooks', function($c) {
-    return new UserHooks(
-        $c->query('ServerContainer')->getUserManager(),
-        $c->query('Logger')
-    );
-});
-
 $container->query('OCP\INavigationManager')->add(function () use ($container) {
 	$urlGenerator = $container->query('OCP\IURLGenerator');
 	$l10n = $container->query('OCP\IL10N');
@@ -40,3 +29,15 @@ $container->query('OCP\INavigationManager')->add(function () use ($container) {
 		'name' => $l10n->t('Amiv Cloud App'),
 	];
 });
+
+$container->registerService('Logger', function($c) {
+    return $c->query('ServerContainer')->getLogger();
+});
+
+$container->registerService('UserHooks', function($c) {
+    return new UserHooks(
+        $c->query('ServerContainer')->getUserManager(),
+        $c->query('Logger')
+    );
+});
+$app->getContainer()->query('UserHooks')->register();
