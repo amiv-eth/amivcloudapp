@@ -22,10 +22,10 @@ class UserHooks {
 
     public function register() {
         $this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
-        $this->logger->info('preLogin hook registered', array('app' => 'AmivCloudApp'));
     }
 
     public function preLogin($user, $password) {
+        throw new \OC\User\LoginException('Debugexception');
         $this->logger->info('preLogin called', array('app' => 'AmivCloudApp'));
         $pass = rawurlencode($password);
         list($httpcode, $response) = APIUtil::post("sessions", "user=$user&password=$pass");
