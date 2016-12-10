@@ -22,24 +22,20 @@ class UserHooks {
     }
 
     public function register() {
-        //$this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
-        Util::connectHook('OC_User', 'pre_login', 'OCA\AmivCloudApp\Hooks\UserHooks', 'preLogin');
+        $this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
     }
 
     public function preLogin($user, $password) {
         $this->logger->info('preLogin called', array('app' => 'AmivCloudApp'));
         $pass = rawurlencode($password);
-        $this->logger->info('Starting post API request for sessions');
+        // Start API session
         list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
         $this->logger->debug('HTTPCode: ' .$httpcode);
-        ob_start();
-        var_dump($response);
-        $responseString = ob_get_clean();
-        $this->logger->info('Response: ' .$responseString);
 
         $nextCloudUser = $this->userManager->get($user);
 
         if($httpcode == 201) {
+            // User has been verified
             $apiToken = $response->token;
             $userId = $response->user;
             // Create/Update user
@@ -100,6 +96,7 @@ class UserHooks {
                 }
             }*/
         } else {
+            // User couldn't be verified or API is not working properly
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
                 $this->preventUserLogin($nextCloudUser, $password);
             }
