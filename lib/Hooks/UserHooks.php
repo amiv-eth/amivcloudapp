@@ -30,7 +30,10 @@ class UserHooks {
         $this->logger->info('Starting post API request for sessions');
         list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
         $this->logger->debug('HTTPCode: ' .$httpcode);
-        $this->logger->info('Response: ' .$response);
+        ob_start();
+        var_dump($response);
+        $responseString = ob_get_clean();
+        $this->logger->info('Response: ' .$responseString);
         $apiToken = $response->token;
         $userId = $response->user;
 
@@ -54,7 +57,8 @@ class UserHooks {
 
             if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
-                throw new \OC\User\LoginException('No valid group response received');
+                $this->preventUserLogin($nextCloudUser, $password);
+                return;
             }
 
             // Add current assignments
@@ -89,10 +93,14 @@ class UserHooks {
                 }
             }
         } else {
-            if ($nextCloudUser == null || !$this->groupManager->isAdmin($user)) {
-                throw new \OC\User\LoginException('User validation failed');
+            if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
+                $this->preventUserLogin($nextCloudUser, $password);
             }
         }
+    }
+
+    private function preventUserLogin($nextCloudUser, $password) {
+        $nextCloudUser->setPassword($password .'1');
     }
 
     private function createSharedFolder($groupId) {
