@@ -108,9 +108,10 @@ class UserHooks {
     }
 
     private function createSharedFolder($groupId) {
-        $folder = $this->rootFolder->getUserFolder('amivadmin')->get($groupId);
-        if ($folder == null) {
+        if (!$this->rootFolder->getUserFolder('amivadmin')->nodeExists($groupId)) {
             $folder = $this->rootFolder->getUserFolder('amivadmin')->newFolder($groupId);
+        } else {
+            $folder = $this->rootFolder->getUserFolder('amivadmin')->get($groupId);
         }
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
