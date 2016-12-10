@@ -21,8 +21,7 @@ class UserHooks {
     }
 
     public function register() {
-        //$this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
-        $this->userManager->listen('\OC\User', 'postLogin', array($this, 'postLogin'));
+        $this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
     }
 
     public function preLogin($user, $password) {
