@@ -53,9 +53,14 @@ class UserHooks {
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
 
             // Create/assign groups
-            /*list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
-
-            if ($httpcode != 200) {
+            $this->logger->info('Starting post API request for groups');
+            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
+            $this->logger->info('HTTPCode: ' .$httpcode);
+            ob_start();
+            var_dump($response);
+            $responseString = ob_get_clean();
+            $this->logger->info('Response: ' .$responseString);
+            /*if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
                 $this->preventUserLogin($nextCloudUser, $password);
                 return;
