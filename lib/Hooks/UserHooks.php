@@ -58,7 +58,7 @@ class UserHooks {
             var_dump($response);
             $responseString = ob_get_clean();
             $this->logger->info('Response: ' .$responseString);
-            /*if ($httpcode != 200) {
+            if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
                 $this->preventUserLogin($nextCloudUser, $password);
                 return;
@@ -84,7 +84,7 @@ class UserHooks {
             }
 
             // remove invalidated group assignments
-            foreach ($nextCloudGroups as $nextCloudGroup) {
+            /*foreach ($nextCloudGroups as $nextCloudGroup) {
                 $valid = false;
                 foreach ($groups as $item) {
                     if ($nextCloudGroup->getGID() == $item->group->name) {
