@@ -22,6 +22,7 @@ class UserHooks {
 
     public function register() {
         $this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
+        $this->logger->info('preLogin hook registered', array('app' => 'AmivCloudApp'));
     }
 
     public function preLogin($user, $password) {
