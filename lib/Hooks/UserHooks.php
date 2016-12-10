@@ -83,7 +83,7 @@ class UserHooks {
         $share->setSharedBy('amivadmin');
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
         $share->setShareWith('testgroup2');
-        $share->setPermissions(\OCP\Constants\::PERMISSION_READ | \OCP\Constants\::PERMISSION_UPDATE | \OCP\Constants\::PERMISSION_DELETE);
+        $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE);
         $this->shareManager->createShare($share);
         $this->logger->info('postLogin called', array('app' => 'AmivCloudApp'));
     }
