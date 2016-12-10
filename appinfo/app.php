@@ -1,9 +1,21 @@
 <?php
 
 use OCP\AppFramework\App;
+use OCA\AmivCloudApp\Hooks\UserHooks;
 
 $app = new App('amivcloudapp');
 $container = $app->getContainer();
+
+$container->registerService('Logger', function($c) {
+    return $c->query('ServerContainer')->getLogger();
+});
+
+$container->registerService('UserHooks', function($c) {
+    return new UserHooks(
+        $c->query('ServerContainer')->getUserManager(),
+        $c->query('Logger')
+    );
+});
 
 $container->query('OCP\INavigationManager')->add(function () use ($container) {
 	$urlGenerator = $container->query('OCP\IURLGenerator');

@@ -1,0 +1,21 @@
+<?php
+namespace OCA\AmivCloudApp\Hooks;
+
+class UserHooks {
+
+    private $userManager;
+    private $logger;
+
+    public function __construct($userManager, $logger) {
+        $this->userManager = $userManager;
+        $this->logger = $logger;
+    }
+
+    public function register() {
+        $this->userManager->listen('\OC\User', 'preLogin', 'preLogin');
+    }
+
+    public function preLogin($user, $password) {
+        $this->logger->error('It works!', array('app' => 'AmivCloudApp'));
+    }
+}
