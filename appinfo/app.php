@@ -36,6 +36,7 @@ $container->registerService('Logger', function($c) {
 
 $container->registerService('UserHooks', function($c) {
     return new UserHooks(
+        $c->query('ServerContainer')->getGroupManager(),
         $c->query('ServerContainer')->getUserManager(),
         $c->query('Logger')
     );
