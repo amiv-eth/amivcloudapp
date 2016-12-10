@@ -15,6 +15,7 @@ class UserHooks {
     public function __construct($groupManager, $userManager, $shareManager, $rootFolder, $logger) {
         $this->userManager = $userManager;
         $this->groupManager = $groupManager;
+        $this->shareManager = $shareManager;
         $this->rootFolder = $rootFolder;
         $this->logger = $logger;
     }
