@@ -14,11 +14,10 @@ class APIUtil {
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: ' . $token]);
         }
         curl_setopt($ch, CURLOPT_VERBOSE, true);
-        curl_exec($ch);
+        $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $server_output = curl_exec ($ch);
         curl_close ($ch);
-        return [$httpcode, $server_output];
+        return [$httpcode, $response];
     }
 
     static function post($request, $postData, $token=null) {
@@ -34,9 +33,8 @@ class APIUtil {
             curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: ' . $token]);
         }
         curl_setopt($ch, CURLOPT_VERBOSE, true);
-        curl_exec($ch);
+        $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $response = json_decode(curl_exec ($ch));
         curl_close ($ch);
         return [$httpcode, $response];
     }
