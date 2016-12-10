@@ -9,7 +9,6 @@ class UserHooks {
     public function __construct($userManager, $logger) {
         $this->userManager = $userManager;
         $this->logger = $logger;
-        $this->logger->error('Logger is started!', array('app' => 'AmivCloudApp'));
     }
 
     public function register() {
@@ -17,6 +16,24 @@ class UserHooks {
     }
 
     public function preLogin($user, $password) {
-        $this->logger->error('It works!', array('app' => 'AmivCloudApp'));
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL,"http://192.168.1.100/sessions");
+        curl_setopt($ch, CURLOPT_POST, 1);
+        $pass = rawurlencode($password);
+        curl_setopt($ch, CURLOPT_POSTFIELDS,"user=$user&password=$pass");
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        curl_setopt($ch, CURLOPT_VERBOSE, true);
+        curl_exec($ch);
+        $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close ($ch);
+
+        if($httpcode == 201) {
+            $this->userManager->create($user, $password);
+            $this->logger->info('User successfully created', array('app' => 'AmivCloudApp'));
+        }
+
     }
 }
