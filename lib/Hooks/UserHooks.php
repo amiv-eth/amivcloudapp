@@ -8,10 +8,11 @@ class UserHooks {
 
     private $userManager;
     private $groupManager;
+    private $shareManager;
     private $rootFolder;
     private $logger;
 
-    public function __construct($groupManager, $userManager, $rootFolder, $logger) {
+    public function __construct($groupManager, $userManager, $shareManager, $rootFolder, $logger) {
         $this->userManager = $userManager;
         $this->groupManager = $groupManager;
         $this->rootFolder = $rootFolder;
@@ -74,7 +75,14 @@ class UserHooks {
     }
 
     public function postLogin(\OC\User\User $user) {
-        $this->rootFolder->getUserFolder('amivadmin')->newFolder('Test');
+        $folder = $this->rootFolder->getUserFolder('amivadmin')->newFolder('Test');
+        // Set up share on newly created folder
+        $share = $this->shareManager->newShare();
+        $share->setNode($folder);
+        $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
+        $share->setShareWith('testgroup2');
+        $share->setPermissions(\OCP\Constants\::PERMISSION_READ | \OCP\Constants\::PERMISSION_UPDATE | \OCP\Constants\::PERMISSION_DELETE);
+        $this->shareManager->createShare($share);
         $this->logger->info('postLogin called', array('app' => 'AmivCloudApp'));
     }
 }
