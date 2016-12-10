@@ -43,7 +43,7 @@ class UserHooks {
                 $nextCloudUser->setPassword($password);
                 $this->logger->info('User successfully updated', array('app' => 'AmivCloudApp'));
             } else {
-                $this->userManager->create($user, $password);
+                $this->userManager->createUser($user, $password);
                 $nextCloudUser = $this->userManager->get($user);
                 $this->logger->info('User successfully created', array('app' => 'AmivCloudApp'));
             }
