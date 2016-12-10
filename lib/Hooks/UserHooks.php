@@ -25,6 +25,7 @@ class UserHooks {
     }
 
     public function preLogin($user, $password) {
+        $this->logger->info('preLogin called', array('app' => 'AmivCloudApp'));
         $pass = rawurlencode($password);
         list($httpcode, $response) = APIUtil::post("sessions", "user=$user&password=$pass");
         $apiToken = $response->token;
