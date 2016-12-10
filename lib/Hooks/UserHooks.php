@@ -13,7 +13,7 @@ class UserHooks {
     }
 
     public function register() {
-        $this->userManager->listen('\OC\User', 'preLogin', function($user,$password) { $this->preLogin($user, $password); });
+        $this->userManager->listen('\OC\User', 'preLogin', 'preLogin');
     }
 
     public function preLogin($user, $password) {
