@@ -107,6 +107,7 @@ class UserHooks {
     private function preventUserLogin($nextCloudUser, $password) {
         $this->logger->info('Should prevent user from logging in!', array('app' => 'AmivCloudApp'));
         //$nextCloudUser->setPassword($password .'1');
+        $nextCloudUser->setEnabled(false);
     }
 
     private function createSharedFolder($groupId) {
