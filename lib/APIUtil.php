@@ -7,6 +7,7 @@ class APIUtil {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL,"https://amiv-apidev.vsos.ethz.ch/" .$request);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        // TODO: change SSL options to true
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
@@ -28,6 +29,7 @@ class APIUtil {
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        // TODO: change SSL options to true
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
