@@ -29,6 +29,7 @@ class UserHooks {
         $pass = rawurlencode($password);
         $this->logger->info('Starting post API request for sessions');
         list($httpcode, $response) = APIUtil::post("sessions", "user=$user&password=$pass");
+        $this->logger->debug('HTTPCode: ' .$httpcode);
         $this->logger->info('Response: ' .$response);
         $apiToken = $response->token;
         $userId = $response->user;
