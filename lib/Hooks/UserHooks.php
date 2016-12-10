@@ -79,6 +79,7 @@ class UserHooks {
         // Set up share on newly created folder
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
+        $share->setSharedBy('amivadmin');
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
         $share->setShareWith('testgroup2');
         $share->setPermissions(\OCP\Constants\::PERMISSION_READ | \OCP\Constants\::PERMISSION_UPDATE | \OCP\Constants\::PERMISSION_DELETE);
