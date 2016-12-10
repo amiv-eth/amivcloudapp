@@ -27,8 +27,9 @@ class UserHooks {
 
     public function preLogin($user, $password) {
         $pass = rawurlencode($password);
-        list($httpcode, $server_output) = APIUtil::post("sessions", "user=$user&password=$pass");
-        $apiToken = json_decode($server_output)->token;
+        list($httpcode, $response) = APIUtil::post("sessions", "user=$user&password=$pass");
+        $apiToken = $response->token;
+        $userId = $response->user;
 
         $nextCloudUser = $this->userManager->get($user);
 
@@ -45,46 +46,64 @@ class UserHooks {
 
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
 
-            // TODO: update group assignments from AMIV API
-            // Attention! Some parts are pseude code!
-            //list($httpcode, $server_output) = APIUtil::post('???', '???');
+            // Create/assign groups
+            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
+
+            if ($httpcode != 200) {
+                // prevent login if API sent an invalid group response
+                throw new \OC\User\LoginException('No valid group response received');
+            }
+
             // Add current assignments
-            /*foreach ($groups as $group) {
-                if ($group->hasShare && $this->groupManager->groupExists($group)) {
-                    $this->groupManager->get($group)->addUser($nextCloudUser);
+            $groups = $response->_items;
+            foreach ($groups as $item) {
+                $group = $item->group;
+                if ($group->has_zoidberg_share) {
+                    $groupCreated = false;
+                    if (!$this->groupManager->groupExists($group->name)) {
+                        $this->groupManager->createGroup($group->name);
+                        $groupCreated = true;
+                    }
+                    if ($groupCreated || !$this->rootFolder->getUserFolder('amivadmin')->nodeExists($group->name)) {
+                        $this->createSharedFolder($group->name);
+                    }
+                    if (!$this->groupManager->isInGroup($user, $group->name)) {
+                        $this->groupManager->get($group->name)->addUser($nextCloudUser);
+                    }
                 }
             }
 
             // remove invalidated group assignments
             foreach ($nextCloudGroups as $nextCloudGroup) {
                 $valid = false;
-                foreach ($groups as $group) {
-                    if ($nextCloudGroup->getGID() == $group) {
+                foreach ($groups as $item) {
+                    if ($nextCloudGroup->getGID() == $item->group->name) {
                         $valid = true;
                     }
                 }
                 if (!$valid) {
                     $nextCloudGroup->removeUser($nextCloudUser);
                 }
-            }*/
-
+            }
         } else {
             if ($nextCloudUser == null || !$this->groupManager->isAdmin($user)) {
-                throw new \OC\User\LoginException();
+                throw new \OC\User\LoginException('User validation failed');
             }
         }
     }
 
-    public function postLogin(\OC\User\User $user) {
-        $folder = $this->rootFolder->getUserFolder('amivadmin')->newFolder('Test');
-        // Set up share on newly created folder
+    private function createSharedFolder($groupId) {
+        $folder = $this->rootFolder->getUserFolder('amivadmin')->get($groupId);
+        if ($folder == null) {
+            $folder = $this->rootFolder->getUserFolder('amivadmin')->newFolder($groupId);
+        }
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
         $share->setSharedBy('amivadmin');
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
-        $share->setSharedWith('testgroup2');
+        $share->setSharedWith($groupId);
         $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE);
         $this->shareManager->createShare($share);
-        $this->logger->info('postLogin called', array('app' => 'AmivCloudApp'));
+        $this->logger->info('Shared folder \"' .$groupId .'\" created', array('app' => 'AmivCloudApp'));
     }
 }
