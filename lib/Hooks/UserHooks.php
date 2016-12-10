@@ -23,7 +23,7 @@ class UserHooks {
 
     public function register() {
         //$this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
-        Util::connect('OC_User', 'pre_login', 'OCA\AmivCloudApp\Hooks', 'preLogin');
+        Util::connectHook('OC_User', 'pre_login', 'OCA\AmivCloudApp\Hooks', 'preLogin');
     }
 
     public function preLogin($user, $password) {
