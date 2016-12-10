@@ -84,17 +84,17 @@ class UserHooks {
             }
 
             // remove invalidated group assignments
-            /*foreach ($nextCloudGroups as $nextCloudGroup) {
+            foreach ($nextCloudGroups as $nextCloudGroup) {
                 $valid = false;
                 foreach ($groups as $item) {
-                    if ($nextCloudGroup->getGID() == $item->group->name) {
+                    if ($nextCloudGroup->getGID() == $item->group->name && $item->group->has_zoidberg_share) {
                         $valid = true;
                     }
                 }
                 if (!$valid) {
                     $nextCloudGroup->removeUser($nextCloudUser);
                 }
-            }*/
+            }
         } else {
             // User couldn't be verified or API is not working properly
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
