@@ -48,7 +48,7 @@ class UserHooks {
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
 
             // Create/assign groups
-            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
+            /*list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
 
             if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
@@ -85,7 +85,7 @@ class UserHooks {
                 if (!$valid) {
                     $nextCloudGroup->removeUser($nextCloudUser);
                 }
-            }
+            }*/
         } else {
             if ($nextCloudUser == null || !$this->groupManager->isAdmin($user)) {
                 throw new \OC\User\LoginException('User validation failed');
