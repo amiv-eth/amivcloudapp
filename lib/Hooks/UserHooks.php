@@ -52,7 +52,7 @@ class UserHooks {
 
             // Create/assign groups
             $this->logger->info('Starting post API request for groups');
-            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
+            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
             $this->logger->info('HTTPCode: ' .$httpcode);
             ob_start();
             var_dump($response);
