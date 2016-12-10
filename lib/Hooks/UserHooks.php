@@ -28,9 +28,7 @@ class UserHooks {
         $this->logger->info('preLogin called', array('app' => 'AmivCloudApp'));
         $pass = rawurlencode($password);
         $this->logger->info('Starting post API request for sessions');
-        //list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
-        $httpcode = 401;
-        $response = 'hier gibts nix';
+        list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
         $this->logger->debug('HTTPCode: ' .$httpcode);
         ob_start();
         var_dump($response);
@@ -55,7 +53,7 @@ class UserHooks {
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
 
             // Create/assign groups
-            /*list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
+            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user": "' .$userId .'"}&embedded={"group": 1}', $apiToken);
 
             if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
@@ -93,7 +91,7 @@ class UserHooks {
                 if (!$valid) {
                     $nextCloudGroup->removeUser($nextCloudUser);
                 }
-            }*/
+            }
         } else {
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
                 $this->preventUserLogin($nextCloudUser, $password);
