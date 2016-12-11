@@ -1,0 +1,12 @@
+*** BackendOriginal.php	2016-12-11 11:17:31.094069713 +0000
+--- Backend.php	2016-12-11 11:15:24.840822504 +0000
+***************
+*** 46,52 ****
+  
+  	protected $possibleActions = array(
+  		self::CREATE_USER => 'createUser',
+- 		self::SET_PASSWORD => 'setPassword',
+  		self::CHECK_PASSWORD => 'checkPassword',
+  		self::GET_HOME => 'getHome',
+  		self::GET_DISPLAYNAME => 'getDisplayName',
+--- 46,51 ----
