@@ -1,2 +1,4 @@
 # Ignore PhpStorm project files
 .idea/
+
+lib/AMIVConfig.php
