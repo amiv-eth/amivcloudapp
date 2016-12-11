@@ -76,8 +76,8 @@ class UserHooks {
      */
     public function preLoginValidation($user, $password) {
         // do basic input santitation
-        $user = str_replace("\0", '', $user)
-        $password = str_replace("\0", '', $password)
+        $user = str_replace("\0", '', $user);
+        $password = str_replace("\0", '', $password);
 
         // retrieve nextcloud user (or null if not existing)
         $nextCloudUser = $this->userManager->get($user);
