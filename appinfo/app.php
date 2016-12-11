@@ -30,17 +30,13 @@ $container->query('OCP\INavigationManager')->add(function () use ($container) {
 	];
 });
 
-$container->registerService('Logger', function($c) {
-    return $c->query('ServerContainer')->getLogger();
-});
-
 $container->registerService('UserHooks', function($c) {
     return new UserHooks(
         $c->query('ServerContainer')->getGroupManager(),
         $c->query('ServerContainer')->getUserManager(),
         $c->query('ServerContainer')->getShareManager(),
         $c->query('ServerContainer')->getRootFolder(),
-        $c->query('Logger')
+        $c->query('ServerContainer')->getLogger()
     );
 });
 $app->getContainer()->query('UserHooks')->register();

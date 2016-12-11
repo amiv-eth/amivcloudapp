@@ -5,7 +5,7 @@ namespace OCA\AmivCloudApp;
 class APIUtil {
     static function get($request, $token=null) {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL,"https://amiv-apidev.vsos.ethz.ch/" .$request);
+        curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::$AMIVAPI_URL.$request);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         // TODO: change SSL options to true
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -25,7 +25,7 @@ class APIUtil {
 
     static function post($request, $postData, $token=null) {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL,"https://amiv-apidev.vsos.ethz.ch/" .$request);
+        curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::$AMIVAPI_URL.$request);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);

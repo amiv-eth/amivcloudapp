@@ -14,8 +14,8 @@ class UserHooks {
     private $logger;
 
     public function __construct($groupManager, $userManager, $shareManager, $rootFolder, $logger) {
-        $this->userManager = $userManager;
         $this->groupManager = $groupManager;
+        $this->userManager = $userManager;
         $this->shareManager = $shareManager;
         $this->rootFolder = $rootFolder;
         $this->logger = $logger;
@@ -74,7 +74,7 @@ class UserHooks {
                         $this->groupManager->createGroup($group->name);
                         $groupCreated = true;
                     }
-                    if ($groupCreated || !$this->rootFolder->getUserFolder('amivadmin')->nodeExists($group->name)) {
+                    if ($groupCreated || !$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->nodeExists($group->name)) {
                         $this->createSharedFolder($group->name);
                     }
                     if (!$this->groupManager->isInGroup($user, $group->name)) {
