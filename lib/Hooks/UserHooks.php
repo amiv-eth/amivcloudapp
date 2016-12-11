@@ -34,7 +34,7 @@ class UserHooks {
 
         $nextCloudUser = $this->userManager->get($user);
 
-        if($httpcode == 201) {
+        if($httpcode === 201) {
             // User has been verified
             $apiToken = $response->token;
             $userId = $response->user;
