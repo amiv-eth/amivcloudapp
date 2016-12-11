@@ -97,7 +97,6 @@ class UserHooks {
             }
         } else {
             // User couldn't be verified or API is not working properly
-            $this->logger->debug('User: Name: ' .$nextCloudUser->getUID());
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
                 $this->preventUserLogin($nextCloudUser, $password);
             }
