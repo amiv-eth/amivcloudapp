@@ -29,12 +29,12 @@ class UserHooks {
         $this->logger->debug('preLogin called', array('app' => 'AmivCloudApp'));
         $pass = rawurlencode($password);
         // Start API session
-        list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
+        list($httpcode, $errorcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
         $this->logger->debug('Session HTTPCode: ' .$httpcode);
 
         $nextCloudUser = $this->userManager->get($user);
 
-        if($httpcode === 201) {
+        if($httpcode === 201 && $errorcode == 0) {
             // User has been verified
             $apiToken = $response->token;
             $userId = $response->user;
@@ -52,7 +52,7 @@ class UserHooks {
 
             // Create/assign groups
             $this->logger->debug('Starting post API request for groups');
-            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
+            list($httpcode, $errorcode, $response) = APIUtil::get('groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
             $this->logger->debug('Groups HTTPCode: ' .$httpcode);
             ob_start();
             var_dump($response);
@@ -97,6 +97,7 @@ class UserHooks {
             }
         } else {
             // User couldn't be verified or API is not working properly
+            $this->logger->debug('User: Name: ' .$nextCloudUser->getUID());
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
                 $this->preventUserLogin($nextCloudUser, $password);
             }

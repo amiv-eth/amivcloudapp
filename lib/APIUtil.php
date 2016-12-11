@@ -19,8 +19,9 @@ class APIUtil {
         curl_setopt($ch, CURLOPT_VERBOSE, true);
         $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errorcode = curl_errno($ch);
         curl_close ($ch);
-        return [$httpcode, $response];
+        return [$httpcode, $errorcode, $response];
     }
 
     static function post($request, $postData, $token=null) {
@@ -41,7 +42,8 @@ class APIUtil {
         curl_setopt($ch, CURLOPT_VERBOSE, true);
         $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $errorcode = curl_errno($ch);
         curl_close ($ch);
-        return [$httpcode, $response];
+        return [$httpcode, $errorcode, $response];
     }
 }
