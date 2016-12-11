@@ -3,6 +3,7 @@
 namespace OCA\AmivCloudApp;
 
 class APIUtil {
+    // Send GET request to AMIV API
     static function get($request, $token=null) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::$AMIVAPI_URL.$request);
@@ -19,11 +20,11 @@ class APIUtil {
         curl_setopt($ch, CURLOPT_VERBOSE, true);
         $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $errorcode = curl_errno($ch);
         curl_close ($ch);
-        return [$httpcode, $errorcode, $response];
+        return [$httpcode, $response];
     }
 
+    // Send POST request to AMIV API
     static function post($request, $postData, $token=null) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::$AMIVAPI_URL.$request);
@@ -42,8 +43,7 @@ class APIUtil {
         curl_setopt($ch, CURLOPT_VERBOSE, true);
         $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $errorcode = curl_errno($ch);
         curl_close ($ch);
-        return [$httpcode, $errorcode, $response];
+        return [$httpcode, $response];
     }
 }

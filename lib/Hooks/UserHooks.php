@@ -22,19 +22,17 @@ class UserHooks {
     }
 
     public function register() {
-        $this->userManager->listen('\OC\User', 'preLoginValidation', array($this, 'preLogin'));
+        $this->userManager->listen('\OC\User', 'preLoginValidation', array($this, 'preLoginValidation'));
     }
 
-    public function preLogin($user, $password) {
-        $this->logger->debug('preLogin called', array('app' => 'AmivCloudApp'));
+    public function preLoginValidation($user, $password) {
         $pass = rawurlencode($password);
         // Start API session
-        list($httpcode, $errorcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
-        $this->logger->debug('Session HTTPCode: ' .$httpcode);
+        list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
 
         $nextCloudUser = $this->userManager->get($user);
 
-        if($httpcode === 201 && $errorcode == 0) {
+        if($httpcode === 201) {
             // User has been verified
             $apiToken = $response->token;
             $userId = $response->user;
@@ -51,16 +49,10 @@ class UserHooks {
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
 
             // Create/assign groups
-            $this->logger->debug('Starting post API request for groups');
-            list($httpcode, $errorcode, $response) = APIUtil::get('groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
-            $this->logger->debug('Groups HTTPCode: ' .$httpcode);
-            ob_start();
-            var_dump($response);
-            $responseString = ob_get_clean();
-            $this->logger->debug('Response: ' .$responseString);
+            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
             if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
-                $this->preventUserLogin($nextCloudUser, $password);
+                $this->preventUserLogin($nextCloudUser);
                 return;
             }
 
@@ -98,24 +90,26 @@ class UserHooks {
         } else {
             // User couldn't be verified or API is not working properly
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
-                $this->preventUserLogin($nextCloudUser, $password);
+                $this->preventUserLogin($nextCloudUser);
             }
         }
     }
 
-    private function preventUserLogin($nextCloudUser, $password) {
-        throw new \OC\User\LoginException('Verification failed with AMIV API.');
+    private function preventUserLogin($user) {
+        throw new \OC\User\LoginException('Verification of user "' .$user .'" failed with AMIV API.');
     }
 
     private function createSharedFolder($groupId) {
-        if (!$this->rootFolder->getUserFolder('amivadmin')->nodeExists($groupId)) {
-            $folder = $this->rootFolder->getUserFolder('amivadmin')->newFolder($groupId);
+        // create folder if it does not exist
+        if (!$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->nodeExists($groupId)) {
+            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->newFolder($groupId);
         } else {
-            $folder = $this->rootFolder->getUserFolder('amivadmin')->get($groupId);
+            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->get($groupId);
         }
+        // Create share on folder
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
-        $share->setSharedBy('amivadmin');
+        $share->setSharedBy(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC);
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
         $share->setSharedWith($groupId);
         $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE);
