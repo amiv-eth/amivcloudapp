@@ -9,7 +9,7 @@ class AMIVConfig
 {
 
 	public static $AMIVAPI_URL = 'https://amiv-apidev.vsos.ethz.ch';
-	public static $FILE_OWNER_ACC = 'amivadmin'
+	public static $FILE_OWNER_ACC = 'amivadmin';
 	
 }
 
