@@ -56,7 +56,7 @@ class APIUtil {
      */
     private static function rawreq($request, $postData=null, $token=null) {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::$AMIVAPI_URL.'/'.$request);
+        curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_URL.'/'.$request);
         // if we have post data, put it in request
         if ($postData != null) {
             curl_setopt($ch, CURLOPT_POST, 1);

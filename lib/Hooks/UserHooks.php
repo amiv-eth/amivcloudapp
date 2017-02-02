@@ -125,7 +125,7 @@ class UserHooks {
                         $groupCreated = true;
                     }
                     // if the group was just created or if the groups share does not exist yet, create it
-                    if ($groupCreated || !$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->nodeExists($group->name)) {
+                    if ($groupCreated || !$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->nodeExists($group->name)) {
                         $this->createSharedFolder($group->name);
                     }
                     // add nextcloud user to nextcloud group if not already member
@@ -176,15 +176,15 @@ class UserHooks {
      */
     private function createSharedFolder($groupId) {
         // create folder in admin account if it does not exist
-        if (!$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->nodeExists($groupId)) {
-            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->newFolder($groupId);
+        if (!$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->nodeExists($groupId)) {
+            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->newFolder($groupId);
         } else {
-            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC)->get($groupId);
+            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->get($groupId);
         }
         // share said folder with the given groupId
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
-        $share->setSharedBy(\OCA\AmivCloudApp\AMIVConfig::$FILE_OWNER_ACC);
+        $share->setSharedBy(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC);
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
         $share->setSharedWith($groupId);
         // grant all permissions except re-sharing
