@@ -6,7 +6,7 @@
 * Open terminal and change to the root directory of your nextcloud installation (named ```nextcloud``` by default)
 * Apply patch file 
 
-      $ patch -p3 < nextcloud-<version>.patch
+      $ patch -p3 < nextcloud-\<version\>.patch
   
   where you have to replace *\<version\>* with your Nextcloud version number (if available in this repository!)
 * Create file **lib/AMIVConfig.php** (See example file lib/AMIVConfig.example.php)
