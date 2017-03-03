@@ -50,12 +50,12 @@ class UserHooks {
 
     /** call this function to register the hook and react to login events */
     public function register() {
-        $this->userManager->listen('\OC\User', 'preLoginValidation', array($this, 'preLoginValidation'));
+        $this->userManager->listen('\OC\User', 'preLogin', array($this, 'preLogin'));
     }
 
 
     /**
-     * preLoginValidation Hook
+     * preLogin Hook
      *
      * Called once on every login attempt with the user entered username
      * and password. This piece of software synchronizes the user information
@@ -74,7 +74,7 @@ class UserHooks {
      *
      * @throws \OC\User\LoginException
      */
-    public function preLoginValidation($user, $password) {
+    public function preLogin($user, $password) {
         // do basic input santitation
         $user = str_replace("\0", '', $user);
         $password = str_replace("\0", '', $password);
@@ -94,11 +94,11 @@ class UserHooks {
             // create or update nextcloud user
             if ($nextCloudUser != null) {
                 $nextCloudUser->setPassword($password);
-                $this->logger->info('User successfully updated', array('app' => 'AmivCloudApp'));
+                $this->logger->info('User "' .$user .'" successfully updated', array('app' => 'AmivCloudApp'));
             } else {
                 $this->userManager->createUser($user, $password);
                 $nextCloudUser = $this->userManager->get($user);
-                $this->logger->info('User successfully created', array('app' => 'AmivCloudApp'));
+                $this->logger->info('User "' . $user .'" successfully created', array('app' => 'AmivCloudApp'));
             }
 
             // retrieve list of nextcloud groups for this user
@@ -191,6 +191,6 @@ class UserHooks {
         $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE);
         // actually create the share and log
         $this->shareManager->createShare($share);
-        $this->logger->info('Shared folder \"' .$groupId .'\" created', array('app' => 'AmivCloudApp'));
+        $this->logger->info('Shared folder "' .$groupId .'" created', array('app' => 'AmivCloudApp'));
     }
 }

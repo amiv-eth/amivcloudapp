@@ -3,10 +3,15 @@
 ## Setup
 
 * Place this app in **nextcloud/apps/**
-* Apply patch files located in the root folder of this app
+* Open terminal and change to the root directory of your nextcloud installation (named ```nextcloud``` by default)
+* Apply patch file 
+
+      $ patch -p3 < nextcloud-<version>.patch
+  
+  where you have to replace *\<version\>* with your Nextcloud version number (if available in this repository!)
 * Create file **lib/AMIVConfig.php** (See example file lib/AMIVConfig.example.php)
 
-*Note that no 3rd party tools are needed to run this app.*
+Please note that the patch file for Nextcloud verion 11 does also apply for version 10!
 
 ## Deploy
 
