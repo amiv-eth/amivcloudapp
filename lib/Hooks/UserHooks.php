@@ -134,6 +134,9 @@ class UserHooks {
                         $this->groupManager->get($group->name)->addUser($nextCloudUser);
                     }
                 }
+                if ($group->name == 'admin' && !$this->groupManager->isInGroup($user, $group->name)) {
+                        $this->groupManager->get($group->name)->addUser($nextCloudUser);
+                }
             }
 
             // remove user from groups he is not member of anymore
