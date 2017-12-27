@@ -11,7 +11,7 @@
   where you have to replace *\<version\>* with your Nextcloud version number (if available in this repository!)
 * Create file **lib/AMIVConfig.php** (See example file lib/AMIVConfig.example.php)
 
-Please note that the patch file for Nextcloud verion 11 does also apply for version 10!
+Please note that the patch file for Nextcloud version 11 does also apply for version 10!
 
 ## Deploy
 
