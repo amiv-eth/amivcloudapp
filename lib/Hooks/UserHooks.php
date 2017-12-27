@@ -100,6 +100,7 @@ class UserHooks {
                 $nextCloudUser = $this->userManager->get($user);
                 $this->logger->info('User "' . $user .'" successfully created', array('app' => 'AmivCloudApp'));
             }
+            $nextCloudUser->setQuota('0B');
 
             // retrieve list of nextcloud groups for this user
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
