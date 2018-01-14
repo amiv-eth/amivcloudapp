@@ -31,6 +31,7 @@ class AMIVConfig
 {
 	const AMIVAPI_URL = 'https://amiv-apidev.vsos.ethz.ch/';
 	const FILE_OWNER_ACC = 'amivadmin';
+	const AMIVAPI_ADMIN_GROUP = 'admin';
 	
 }
 
