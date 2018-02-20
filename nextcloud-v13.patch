@@ -1,0 +1,27 @@
+diff -crB /original/nextcloud/lib/private/User/Backend.php /modified/nextcloud/lib/private/User/Backend.php
+*** /original/nextcloud/lib/private/User/Backend.php	2018-02-20 11:00:00.316796734 +0100
+--- /modified/nextcloud/lib/private/User/Backend.php	2018-02-20 12:00:00.828537353 +0100
+***************
+*** 48,55 ****
+  
+  	protected $possibleActions = array(
+  		self::CREATE_USER => 'createUser',
+- 		self::SET_PASSWORD => 'setPassword',
+  		self::CHECK_PASSWORD => 'checkPassword',
+  		self::GET_HOME => 'getHome',
+  		self::GET_DISPLAYNAME => 'getDisplayName',
+--- 48,54 ----
+diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/lib/private/User/Session.php
+*** /original/nextcloud/lib/private/User/Session.php	2018-02-20 11:00:00.316796734 +0100
+--- /modified/nextcloud/lib/private/User/Session.php	2018-02-20 12:00:00.828537353 +0100
+***************
+*** 576,583 ****
+  			// Ignore and use empty string instead
+  		}
+  
+- 		$this->manager->emit('\OC\User', 'preLogin', array($uid, $password));
+- 
+  		$user = $this->manager->get($uid);
+  		if (is_null($user)) {
+  			// user does not exist
+--- 576,581 ----

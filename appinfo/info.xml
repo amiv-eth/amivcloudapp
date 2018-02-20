@@ -4,15 +4,18 @@
     <id>amivcloudapp</id>
     <name>Amiv Cloud App</name>
     <summary>Integrate the AMIV API for login to Nextcloud.</summary>
-    <description><![CDATA[App for Nextcloud 10 and 11 to include the AMIV API for logins / group assignments / etc...]]></description>
+    <description><![CDATA[App for Nextcloud to include the AMIV API for logins / group assignments / etc...]]></description>
     <licence>agpl</licence>
     <author mail="mail@mebg.ch" homepage="https://amiv.ethz.ch">AMIV an der ETH</author>
     <version>0.0.1</version>
     <namespace>AmivCloudApp</namespace>
+    <types>
+		<authentication/>
+	</types>
     <category>auth</category>
     <website>https://amiv.ethz.ch</website>
     <dependencies>
         <owncloud min-version="9.1" max-version="9.2"/>
-        <nextcloud min-version="10" max-version="12"/>
+        <nextcloud min-version="10" max-version="13"/>
     </dependencies>
 </info>

@@ -65,7 +65,7 @@ class APIUtil {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         // ToDo: change SSL options to true
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, fsalse);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
         curl_setopt($ch, CURLINFO_HEADER_OUT, true);
