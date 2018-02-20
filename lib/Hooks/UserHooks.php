@@ -134,9 +134,9 @@ class UserHooks {
                         $this->groupManager->get($group->name)->addUser($nextCloudUser);
                     }
                 }
-                if ($group->name == \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUP &&
-					!$this->groupManager->isInGroup($user, $group->name)) {
-                        $this->groupManager->get($group->name)->addUser($nextCloudUser);
+                if (in_array($group->name, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUPS) &&
+					!$this->groupManager->isInGroup($user, 'admin')) {
+                        $this->groupManager->get('admin')->addUser($nextCloudUser);
                 }
             }
 
@@ -146,6 +146,10 @@ class UserHooks {
                 foreach ($apiGroups as $item) {
                     if ($nextCloudGroup->getGID() == $item->group->name && $item->group->has_zoidberg_share) {
                         $valid = true;
+                    }
+                    if (in_array($item->group->name, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUPS) &&
+                        $nextCloudGroup->getGID() == 'admin') {
+                            $valid = true;
                     }
                 }
                 if (!$valid) {
