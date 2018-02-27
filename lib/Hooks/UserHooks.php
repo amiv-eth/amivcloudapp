@@ -64,7 +64,7 @@ class UserHooks {
      * When a AMIV user logs in the first time, the following things happen:
      *  1. post to AMIV API sessions and hereby check the user entered credentials
      *  2. create user with correct pw in nextcloud (if user exists, update pw)
-     *  3. get list of users AMIV groups with has_zoidberg_storage set to true
+     *  3. get list of users AMIV groups with requires_storage set to true
      *      3.1 create all groups not known to nextcloud yet
      *      3.2 create folder in admin account and share it with new group
      *  4. add user to his groups in nextcloud & remove user from not present groups again
@@ -117,8 +117,8 @@ class UserHooks {
             // add AMIV API groups to Nextcloud & create share & add user
             foreach ($apiGroups as $item) {
                 $group = $item->group;
-                // only regard groups from AMIV API which have "has_zoidberg_share" flag set
-                if ($group->has_zoidberg_share) {
+                // only regard groups from AMIV API which have "requires_storage" flag set
+                if ($group->requires_storage) {
                     // create group if not yet in nextcloud
                     $groupCreated = false;
                     if (!$this->groupManager->groupExists($group->name)) {
@@ -144,7 +144,7 @@ class UserHooks {
             foreach ($nextCloudGroups as $nextCloudGroup) {
                 $valid = false;
                 foreach ($apiGroups as $item) {
-                    if ($nextCloudGroup->getGID() == $item->group->name && $item->group->has_zoidberg_share) {
+                    if ($nextCloudGroup->getGID() == $item->group->name && $item->group->requires_storage) {
                         $valid = true;
                     }
                     if (in_array($item->group->name, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUPS) &&
