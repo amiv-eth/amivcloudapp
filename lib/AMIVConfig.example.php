@@ -29,9 +29,10 @@ namespace OCA\AmivCloudApp;
 */
 class AMIVConfig 
 {
-	const AMIVAPI_URL = 'https://amiv-apidev.vsos.ethz.ch/';
+	const AMIVAPI_URL = 'https://amiv-api.ethz.ch/';
 	const FILE_OWNER_ACC = 'amivadmin';
 	const AMIVAPI_ADMIN_GROUPS = ['admin'];
 	
+	// the nextcloud group name used to identify members
+	const INTERNAL_GROUP = 'member';
 }
-

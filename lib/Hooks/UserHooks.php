@@ -117,25 +117,13 @@ class UserHooks {
             // add AMIV API groups to Nextcloud & create share & add user
             foreach ($apiGroups as $item) {
                 $group = $item->group;
-                // only regard groups from AMIV API which have "requires_storage" flag set
+                $this->logger->info('Group: ' .var_export($group, true) .' (requires_storage: ' . $group->requires_storage, array('app' => 'AmivCloudApp'));
                 if ($group->requires_storage) {
-                    // create group if not yet in nextcloud
-                    $groupCreated = false;
-                    if (!$this->groupManager->groupExists($group->name)) {
-                        $this->groupManager->createGroup($group->name);
-                        $groupCreated = true;
-                    }
-                    // if the group was just created or if the groups share does not exist yet, create it
-                    if ($groupCreated || !$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->nodeExists($group->name)) {
-                        $this->createSharedFolder($group->name);
-                    }
-                    // add nextcloud user to nextcloud group if not already member
-                    if (!$this->groupManager->isInGroup($user, $group->name)) {
-                        $this->groupManager->get($group->name)->addUser($nextCloudUser);
-                    }
+                    $this->addUserToGroup($group->name, $nextCloudUser);
+                    $this->createSharedFolder($group->name);
                 }
                 if (in_array($group->name, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUPS) &&
-					!$this->groupManager->isInGroup($user, 'admin')) {
+                    !$this->groupManager->isInGroup($user, 'admin')) {
                         $this->groupManager->get('admin')->addUser($nextCloudUser);
                 }
             }
@@ -157,6 +145,17 @@ class UserHooks {
                 }
             }
 
+            // retrieve User from AMIV API
+            list($httpcode, $response) = APIUtil::get('users/' .$userId, $apiToken);
+            if ($httpcode != 200) {
+                // prevent login if API sent an invalid user response
+                $this->preventUserLogin($nextCloudUser);
+                return;
+            }
+
+            if ($response->membership != 'none') {
+                $this->addUserToGroup(\OCA\AmivCloudApp\AMIVConfig::INTERNAL_GROUP, $nextCloudUser);
+            }
         } else {
             // User couldn't be verified or API is not working properly: only allow nextcloud admins to login
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
@@ -170,6 +169,21 @@ class UserHooks {
         throw new \OC\User\LoginException('Verification of user "' .$user .'" failed with AMIV API.');
     }
 
+    /** adds the given nextcloud user to the group with the given name */
+    private function addUserToGroup($groupName, $nextCloudUser) {
+        // create group if not yet in nextcloud
+        $groupCreated = false;
+        if (!$this->groupManager->groupExists($groupName)) {
+            $this->groupManager->createGroup($groupName);
+            $groupCreated = true;
+        }
+        
+        // add nextcloud user to nextcloud group if not already member
+        if (!$this->groupManager->isInGroup($nextCloudUser->getDisplayName(), $groupName)) {
+            $this->groupManager->get($groupName)->addUser($nextCloudUser);
+        }
+    }
+
     /**
      * createSharedFolder
      *
@@ -181,7 +195,7 @@ class UserHooks {
      *
      * users in the group have full read/write permissions, but they are not allowed to re-share it
      * 
-     * @param string $groupID
+     * @param string $groupId
      */
     private function createSharedFolder($groupId) {
         // create folder in admin account if it does not exist
@@ -190,6 +204,16 @@ class UserHooks {
         } else {
             $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->get($groupId);
         }
+
+        // Check if share already exists
+        $shares = $this->shareManager->getSharesBy(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC, \OCP\Share::SHARE_TYPE_GROUP, $folder);
+        if (count($shares) > 0) {
+            foreach ($shares as $share) {
+                if ($share->getSharedWith() == $groupId) {
+                    return;
+                }
+            }
+        }
         // share said folder with the given groupId
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
@@ -197,7 +221,7 @@ class UserHooks {
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
         $share->setSharedWith($groupId);
         // grant all permissions except re-sharing
-        $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE);
+        $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE | \OCP\Constants::PERMISSION_SHARE);
         // actually create the share and log
         $this->shareManager->createShare($share);
         $this->logger->info('Shared folder "' .$groupId .'" created', array('app' => 'AmivCloudApp'));
