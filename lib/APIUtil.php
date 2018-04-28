@@ -29,43 +29,45 @@ class APIUtil {
     /**
      * send GET request to AMIV API
      * 
+     * @param string $url
      * @param string $request
      * @param string $token
      */
-    public static function get($request, $token=null) {
-        return self::rawreq($request, null, $token);
+    public static function get($url, $request, $token=null) {
+        return self::rawreq($url, $request, null, $token);
     }
 
     /**
      * send POST request to AMIV API
      * 
+     * @param string $url
      * @param string $request
      * @param string $postData
      * @param string $token
      */
-    public static function post($request, $postData, $token=null) {
-        return self::rawreq($request, $postData, $token);
+    public static function post($url, $request, $postData, $token=null) {
+        return self::rawreq($url, $request, $postData, $token);
     }
 
     /**
      * assemble request and send it
      * 
+     * @param string $url
      * @param string $request
      * @param string $postData
      * @param string $token
      */
-    private static function rawreq($request, $postData=null, $token=null) {
+    private static function rawreq($url, $request, $postData=null, $token=null) {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_URL.'/'.$request);
+        curl_setopt($ch, CURLOPT_URL, $url .$request);
         // if we have post data, put it in request
         if ($postData != null) {
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
         }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        // ToDo: change SSL options to true
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
         curl_setopt($ch, CURLINFO_HEADER_OUT, true);

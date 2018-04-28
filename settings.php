@@ -21,13 +21,15 @@
  */
 
 
-namespace OCA\AmivCloudApp\AppInfo;
+namespace OCA\AmivCloudApp;
 
-use OCP\App;
+use OCP\User;
 use OCA\AmivCloudApp\AppInfo\Application;
+use OCA\AmivCloudApp\Controller\SettingsController;
 
-/**
- * Administration settings
- */
-App::registerAdmin("amivcloudapp", "settings");
+User::checkAdminUser();
+
 $app = new Application();
+$container = $app->getContainer();
+$response = $container->query(SettingsController::class)->index();
+return $response->render();

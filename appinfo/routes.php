@@ -21,13 +21,9 @@
  */
 
 
-namespace OCA\AmivCloudApp\AppInfo;
-
-use OCP\App;
-use OCA\AmivCloudApp\AppInfo\Application;
-
-/**
- * Administration settings
- */
-App::registerAdmin("amivcloudapp", "settings");
-$app = new Application();
+return [
+    "routes" => [
+       ["name" => "settings#save_settings", "url" => "/ajax/settings", "verb" => "PUT"],
+       ["name" => "settings#get_settings", "url" => "/ajax/settings", "verb" => "GET"],
+    ]
+];

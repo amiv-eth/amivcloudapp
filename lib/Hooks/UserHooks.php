@@ -30,6 +30,7 @@ use OCP\Util;
 
 class UserHooks {
 
+    private $config;
     private $userManager;
     private $groupManager;
     private $shareManager;
@@ -37,7 +38,9 @@ class UserHooks {
     private $logger;
 
     /** constructor for the UserHooks class */
-    public function __construct($groupManager, $userManager, $shareManager, $rootFolder, $logger) {
+    public function __construct($config, $groupManager, $userManager, $shareManager, $rootFolder, $logger) {
+        # application configuration
+        $this->config = $config;
         # managers to add users resp. groups and assign users to groups
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
@@ -84,7 +87,7 @@ class UserHooks {
 
         // authenticate user with AMIV API post request to /sessions
         $pass = rawurlencode($password);
-        list($httpcode, $response) = APIUtil::post("sessions", "username=$user&password=$pass");
+        list($httpcode, $response) = APIUtil::post($this->config->GetApiServerUrl(), "sessions", "username=$user&password=$pass");
 
         if($httpcode === 201) {
             // user credentials valid in AMIV API
@@ -106,13 +109,14 @@ class UserHooks {
             $nextCloudGroups = $this->groupManager->getUserGroups($nextCloudUser);
 
             // retrieve list of the users groups from AMIV API
-            list($httpcode, $response) = APIUtil::get('groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
+            list($httpcode, $response) = APIUtil::get($this->config->GetApiServerUrl(), 'groupmemberships?where={"user":"' .$userId .'"}&embedded={"group":1}', $apiToken);
             if ($httpcode != 200) {
                 // prevent login if API sent an invalid group response
-                $this->preventUserLogin($nextCloudUser);
+                $this->preventUserLogin($user);
                 return;
             }
             $apiGroups = $response->_items;
+            $adminGroups = $this->config->GetApiAdminGroupsArray();
 
             // add AMIV API groups to Nextcloud & create share & add user
             foreach ($apiGroups as $item) {
@@ -122,7 +126,7 @@ class UserHooks {
                     $this->addUserToGroup($group->name, $nextCloudUser);
                     $this->createSharedFolder($group->name);
                 }
-                if (in_array($group->name, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUPS) &&
+                if (in_array($group->name, $adminGroups) &&
                     !$this->groupManager->isInGroup($user, 'admin')) {
                         $this->groupManager->get('admin')->addUser($nextCloudUser);
                 }
@@ -135,7 +139,7 @@ class UserHooks {
                     if ($nextCloudGroup->getGID() == $item->group->name && $item->group->requires_storage) {
                         $valid = true;
                     }
-                    if (in_array($item->group->name, \OCA\AmivCloudApp\AMIVConfig::AMIVAPI_ADMIN_GROUPS) &&
+                    if (in_array($item->group->name, $adminGroups) &&
                         $nextCloudGroup->getGID() == 'admin') {
                             $valid = true;
                     }
@@ -146,20 +150,20 @@ class UserHooks {
             }
 
             // retrieve User from AMIV API
-            list($httpcode, $response) = APIUtil::get('users/' .$userId, $apiToken);
+            list($httpcode, $response) = APIUtil::get($this->config->GetApiServerUrl(), 'users/' .$userId, $apiToken);
             if ($httpcode != 200) {
                 // prevent login if API sent an invalid user response
-                $this->preventUserLogin($nextCloudUser);
+                $this->preventUserLogin($user);
                 return;
             }
 
             if ($response->membership != 'none') {
-                $this->addUserToGroup(\OCA\AmivCloudApp\AMIVConfig::INTERNAL_GROUP, $nextCloudUser);
+                $this->addUserToGroup($this->config->GetInternalGroup(), $nextCloudUser);
             }
         } else {
             // User couldn't be verified or API is not working properly: only allow nextcloud admins to login
             if ($nextCloudUser != null && !$this->groupManager->isAdmin($user)) {
-                $this->preventUserLogin($nextCloudUser);
+                $this->preventUserLogin($user);
             }
         }
     }
@@ -199,14 +203,14 @@ class UserHooks {
      */
     private function createSharedFolder($groupId) {
         // create folder in admin account if it does not exist
-        if (!$this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->nodeExists($groupId)) {
-            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->newFolder($groupId);
+        if (!$this->rootFolder->getUserFolder($this->config->GetFileOwnerAccount())->nodeExists($groupId)) {
+            $folder = $this->rootFolder->getUserFolder($this->config->GetFileOwnerAccount())->newFolder($groupId);
         } else {
-            $folder = $this->rootFolder->getUserFolder(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC)->get($groupId);
+            $folder = $this->rootFolder->getUserFolder($this->config->GetFileOwnerAccount())->get($groupId);
         }
 
         // Check if share already exists
-        $shares = $this->shareManager->getSharesBy(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC, \OCP\Share::SHARE_TYPE_GROUP, $folder);
+        $shares = $this->shareManager->getSharesBy($this->config->GetFileOwnerAccount(), \OCP\Share::SHARE_TYPE_GROUP, $folder);
         if (count($shares) > 0) {
             foreach ($shares as $share) {
                 if ($share->getSharedWith() == $groupId) {
@@ -217,7 +221,7 @@ class UserHooks {
         // share said folder with the given groupId
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
-        $share->setSharedBy(\OCA\AmivCloudApp\AMIVConfig::FILE_OWNER_ACC);
+        $share->setSharedBy($this->config->GetFileOwnerAccount());
         $share->setShareType(\OCP\Share::SHARE_TYPE_GROUP);
         $share->setSharedWith($groupId);
         // grant all permissions except re-sharing

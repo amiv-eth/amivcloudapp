@@ -1,9 +1,7 @@
-<?php
 /**
- * @copyright Copyright (c) 2016, AMIV an der ETH
+ * @copyright Copyright (c) 2018, AMIV an der ETH
  *
  * @author Sandro Lutz <code@temparus.ch>
- * @author Marco Eppenberger <mail@mebg.ch>
  *
  * @license AGPL-3.0
  *
@@ -21,18 +19,23 @@
  *
  */
 
-
-namespace OCA\AmivCloudApp;
-
-/**
-*   Constants for use of the AMIV-API hook for Nextcloud
-*/
-class AMIVConfig 
-{
-	const AMIVAPI_URL = 'https://amiv-api.ethz.ch/';
-	const FILE_OWNER_ACC = 'amivadmin';
-	const AMIVAPI_ADMIN_GROUPS = ['admin'];
-	
-	// the nextcloud group name used to identify members
-	const INTERNAL_GROUP = 'member';
+.section-amivcloudapp h2 {
+    display: inline;
+}
+.amivcloudapp-header {
+    display: inline-block;
+    margin-top: 16px;
+}
+.section-amivcloudapp input {
+    display: block;
+    margin: 6px 0 4px;
+    width: 250px;
+}
+.amivcloudapp-link-action {
+    border-bottom: 1px dotted;
+    cursor: pointer;
+    text-decoration: none;
+}
+.amivcloudapp-error {
+    color: red;
 }
