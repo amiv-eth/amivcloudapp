@@ -66,8 +66,8 @@ class APIUtil {
             curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
         }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1L);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2L);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
         curl_setopt($ch, CURLINFO_HEADER_OUT, true);
