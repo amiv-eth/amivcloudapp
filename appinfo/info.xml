@@ -18,6 +18,9 @@
         <owncloud min-version="9.1" max-version="9.2"/>
         <nextcloud min-version="10" max-version="13"/>
     </dependencies>
+    <background-jobs>
+        <job>OCA\AmivCloudApp\BackgroundJob\ApiSyncTask</job>
+    </background-jobs>
     <settings>
         <admin>OCA\AmivCloudApp\AdminSettings</admin>
     </settings>

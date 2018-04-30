@@ -61,6 +61,13 @@ class AppConfig {
     private $_apiServerUrl = "ApiServerUrl";
 
     /**
+     * The config key for the api key
+     * 
+     * @var string
+     */
+    private $_apiKey = 'ApiKey';
+
+    /**
      * The config key for the file owner account name
      *
      * @var string
@@ -125,7 +132,7 @@ class AppConfig {
                 $apiServer = "https://" . $apiServer;
             }
         }
-        $this->logger->info("SetApiServerUrl: " . $apiServer, array("app" => $this->appName));
+        $this->logger->info("SetApiServerUrl: " . $apiServer, ["app" => $this->appName]);
         $this->config->setAppValue($this->appName, $this->_apiServerUrl, $apiServer);
     }
     /**
@@ -146,7 +153,26 @@ class AppConfig {
         }
         return $url;
     }
+
+    /**
+     * Save the api key to the application configuration
+     *
+     * @param string $apiKey - api key
+     */
+    public function SetApiKey($apiKey) {
+        $this->logger->info("SetApiKey: " . $apiKey, ["app" => $this->appName]);
+        $this->config->setAppValue($this->appName, $this->_apiKey, $apiKey);
+    }
     
+    /**
+     * Get the api key from the application configuration
+     *
+     * @return string
+     */
+    public function GetApiKey() {
+        return $this->config->getAppValue($this->appName, $this->_apiKey, "");
+    }
+
     /**
      * Save the file owner account to the application configuration
      *
@@ -154,7 +180,7 @@ class AppConfig {
      */
     public function SetFileOwnerAccount($account) {
         $account = trim($account);
-        $this->logger->info("SetFileOwnerAccount: " . $account, array("app" => $this->appName));
+        $this->logger->info("SetFileOwnerAccount: " . $account, ["app" => $this->appName]);
         $this->config->setAppValue($this->appName, $this->_fileOwnerAccount, $account);
     }
 
@@ -173,7 +199,7 @@ class AppConfig {
      * @param array $groups - string of group names separated by comma
      */
     public function SetApiAdminGroups($groups) {
-        $this->logger->info("SetApiAdminGroups: " . $groupStr, array("app" => $this->appName));
+        $this->logger->info("SetApiAdminGroups: " . $groups, ["app" => $this->appName]);
         $this->config->setAppValue($this->appName, $this->_apiAdminGroups, $groups);
     }
 
@@ -201,7 +227,7 @@ class AppConfig {
      * @param string $internalGroup - internal group name
      */
     public function SetInternalGroup($internalGroup) {
-        $this->logger->info("SetInternalGroup: " . $internalGroup, array("app" => $this->appName));
+        $this->logger->info("SetInternalGroup: " . $internalGroup, ["app" => $this->appName]);
         $this->config->setAppValue($this->appName, $this->_internalGroup, $internalGroup);
     }
 

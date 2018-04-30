@@ -32,6 +32,7 @@
       $("#amivcloudappSave").click(function () {
           $(".section-amivcloudapp").addClass("icon-loading");
           var amivcloudappApiServerUrl = $("#amivcloudappApiServerUrl").val().trim();
+          var amivcloudappApiKey = $("#amivcloudappApiKey").val().trim();
           var amivcloudappFileOwnerAccount = $("#amivcloudappFileOwnerAccount").val().trim();
           var amivcloudappApiAdminGroups = $("#amivcloudappApiAdminGroups").val().trim();
           var amivcloudappInternalGroup = $("#amivcloudappInternalGroup").val().trim();
@@ -41,6 +42,7 @@
               url: OC.generateUrl("apps/amivcloudapp/ajax/settings"),
               data: {
                   apiServerUrl: amivcloudappApiServerUrl,
+                  apiKey: amivcloudappApiKey,
                   fileOwnerAccount: amivcloudappFileOwnerAccount,
                   apiAdminGroups: amivcloudappApiAdminGroups,
                   internalGroup: amivcloudappInternalGroup
@@ -49,6 +51,7 @@
                   $(".section-amivcloudapp").removeClass("icon-loading");
                   if (response && response.documentserver != null) {
                       $("#amivcloudappApiServerUrl").val(response.apiServerUrl);
+                      $("#amivcloudappApiKey").val(response.apiKey);
                       $("#amivcloudappFileOwnerAccount").val(response.fileOwnerAccount);
                       $("#amivcloudappApiAdminGroups").val(response.apiAdminGroups);
                       $("#amivcloudappInternalGroup").val(response.internalGroup);

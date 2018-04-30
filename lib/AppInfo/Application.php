@@ -28,7 +28,9 @@ use OCP\Share\IManager;
 use OCP\Util;
 use OCA\AmivCloudApp\Hooks\UserHooks;
 use OCA\AmivCloudApp\AppConfig;
+use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\Controller\SettingsController;
+use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
 
 class Application extends App {
     /**
@@ -45,8 +47,8 @@ class Application extends App {
 
         $container = $this->getContainer();
 
-        $container->registerService('UserHooks', function($c) {
-            return new UserHooks(
+        $container->registerService('ApiSync', function($c) {
+            return new ApiSync(
                 $this->appConfig,
                 $c->query('ServerContainer')->getGroupManager(),
                 $c->query('ServerContainer')->getUserManager(),
@@ -55,13 +57,16 @@ class Application extends App {
                 $c->query('ServerContainer')->getLogger()
             );
         });
-        $container->query('UserHooks')->register();
-
-        $container->registerService("Logger", function($c) {
-            return $c->query("ServerContainer")->getLogger();
-        });
-        $container->registerService("URLGenerator", function($c) {
-            return $c->query("ServerContainer")->getURLGenerator();
+        $container->registerService('UserHooks', function($c) {
+            return new UserHooks(
+                $this->appConfig,
+                $c->query('ServerContainer')->getGroupManager(),
+                $c->query('ServerContainer')->getUserManager(),
+                $c->query('ServerContainer')->getShareManager(),
+                $c->query('ServerContainer')->getRootFolder(),
+                $c->query('ServerContainer')->getLogger(),
+                $c->query('ApiSync')
+            );
         });
 
         // Controllers
@@ -69,9 +74,17 @@ class Application extends App {
             return new SettingsController(
                 $c->query("AppName"),
                 $c->query("Request"),
-                $c->query("URLGenerator"),
-                $c->query("Logger"),
+                $c->query('ServerContainer')->getURLGenerator(),
+                $c->query('ServerContainer')->getLogger(),
                 $this->appConfig
+            );
+        });
+
+        // BackgroundJobs
+        $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncTask', function($c) {
+            return new ApiSyncTask(
+                $c->query('ApiSync'),
+                $c->query('ServerContainer')->getLogger()
             );
         });
     }

@@ -21,16 +21,41 @@
  */
 
 
-namespace OCA\AmivCloudApp\AppInfo;
+namespace OCA\AmivCloudApp\BackgroundJob;
 
-use OCP\App;
-use \OCP\BackgroundJob;
 use OCA\AmivCloudApp\AppInfo\Application;
+use OCA\AmivCloudApp\ApiSync;
+use OC\BackgroundJob\TimedJob;
+use OCP\ILogger;
 
-/**
- * Administration settings
- */
-App::registerAdmin("amivcloudapp", "settings");
 
-$app = new Application();
-$app->getContainer()->query('UserHooks')->register();
+class ApiSyncTask extends TimedJob {
+
+    /** @var ApiSync */
+    protected $apiSync;
+
+	/** @var ILogger */
+    protected $logger;
+
+	/**
+	 * @param ApiSync $apiSync
+	 * @param ILogger $logger
+	 */
+	public function __construct(ApiSync $apiSync, ILogger $logger) {
+		// Run every 15 minutes
+		$this->setInterval(60*15);
+
+		$this->apiSync = $apiSync;
+		$this->logger = $logger;
+	}
+
+	protected function fixDIForJobs() {
+		$app = new Application();
+		$this->apiSync = $app->getContainer()->query('ApiSync');
+		$this->logger = \OC::$server->getContainer()->query('ServerContainer')->getLogger();
+	}
+
+    protected function run($argument) {
+		$this->apiSync->syncAllUsers();
+    }
+}

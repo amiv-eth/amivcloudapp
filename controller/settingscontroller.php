@@ -88,6 +88,7 @@ class SettingsController extends Controller {
      * Save app settings
      *
      * @param string $apiServerUrl - AMIV API server address
+     * @param string $apiKey - AMIV API application key
      * @param string $fileOwnerAccount - username of the shared folder's owner
      * @param string $apiAdminGroups - admin groups within the AMIV API
      * @param string $internalGroup - internal group name
@@ -95,11 +96,13 @@ class SettingsController extends Controller {
      * @return array
      */
     public function SaveSettings($apiServerUrl,
+                                    $apiKey,
                                     $fileOwnerAccount,
                                     $apiAdminGroups,
                                     $internalGroup
                                     ) {
         $this->config->SetApiServerUrl($apiServerUrl);
+        $this->config->SetApiKey($apiKey);
         $this->config->SetFileOwnerAccount($fileOwnerAccount);
         $this->config->SetApiAdminGroups($apiAdminGroups);
         $this->config->SetInternalGroup($internalGroup);
@@ -110,6 +113,7 @@ class SettingsController extends Controller {
         }
         return [
             "apiServerUrl" => $this->config->GetApiServerUrl(),
+            "apiKey" => $this->config->GetApiKey(),
             "fileOwnerAccount" => $this->config->GetFileOwnerAccount(),
             "apiAdminGroups" => $this->config->GetApiAdminGroups(),
             "internalGroup" => $this->config->GetInternalGroup(),
@@ -129,6 +133,7 @@ class SettingsController extends Controller {
     public function GetSettings() {
         return [
           "apiServerUrl" => $this->config->GetApiServerUrl(),
+          "apiKey" => $this->config->GetApiKey(),
           "fileOwnerAccount" => $this->config->GetFileOwnerAccount(),
           "apiAdminGroups" => $this->config->GetApiAdminGroups(),
           "internalGroup" => $this->config->GetInternalGroup()
@@ -149,7 +154,7 @@ class SettingsController extends Controller {
                 throw new \Exception($this->trans->t("Mixed Active Content is not allowed. HTTPS address for AMIV API Server is required."));
             }
         } catch (\Exception $e) {
-            $this->logger->error("CommandRequest on check error: " . $e->getMessage(), array("app" => $this->appName));
+            $this->logger->error("CommandRequest on check error: " . $e->getMessage(), ["app" => $this->appName]);
             return $e->getMessage();
         }
         return "";

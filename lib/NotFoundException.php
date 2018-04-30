@@ -21,16 +21,11 @@
  */
 
 
-namespace OCA\AmivCloudApp\AppInfo;
-
-use OCP\App;
-use \OCP\BackgroundJob;
-use OCA\AmivCloudApp\AppInfo\Application;
+namespace OCA\AmivCloudApp;
 
 /**
- * Administration settings
+ * NotFoundException
+ *
+ * @package OCA\AmivCloudApp
  */
-App::registerAdmin("amivcloudapp", "settings");
-
-$app = new Application();
-$app->getContainer()->query('UserHooks')->register();
+class NotFoundException extends \Exception { }

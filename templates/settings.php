@@ -33,6 +33,9 @@ script("amivcloudapp", "settings");
     <p class="amivcloudapp-header">AMIV API Server address</p>
     <input id="amivcloudappApiServerUrl" value="<?php p($_["apiServerUrl"]) ?>" placeholder="https://<amiv-api>/" type="text">
 
+    <p class="amivcloudapp-header">AMIV API Application Key</p>
+    <input id="amivcloudappApiKey" value="<?php p($_["apiKey"]) ?>" placeholder="api-key" type="text">
+
     <p class="amivcloudapp-header">File Owner Account Name (for shared folders)</p>
     <input id="amivcloudappFileOwnerAccount" value="<?php p($_["fileOwnerAccount"]) ?>" placeholder="file-owner" type="text">
 
