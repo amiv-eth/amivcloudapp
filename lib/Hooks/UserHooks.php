@@ -103,6 +103,9 @@ class UserHooks {
                 
                 $this->logger->info('User "' .$user .'" successfully updated', ['app' => 'AmivCloudApp']);
             } else {
+                if (strtolower($user) === $apiUser->nethz) {
+                    $user = strtolower($user);
+                }
                 $nextcloudUser = $this->userManager->createUser($user, $password);
                 $this->logger->info('User "' . $user .'" successfully created', ['app' => 'AmivCloudApp']);
             }
