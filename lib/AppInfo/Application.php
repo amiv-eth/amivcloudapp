@@ -29,10 +29,19 @@ use OCP\Util;
 use OCA\AmivCloudApp\Hooks\UserHooks;
 use OCA\AmivCloudApp\AppConfig;
 use OCA\AmivCloudApp\ApiSync;
+use OCA\AmivCloudApp\Controller\LoginController;
 use OCA\AmivCloudApp\Controller\SettingsController;
 use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
 
 class Application extends App {
+
+    /**
+     * Application Name
+     * 
+     * @var string
+     */
+    public $appName;
+
     /**
      * Application configuration
      *
@@ -41,14 +50,15 @@ class Application extends App {
     public $appConfig;
 
     public function __construct(array $urlParams = []) {
-        $appName = "amivcloudapp";
-        parent::__construct($appName, $urlParams);
-        $this->appConfig = new AppConfig($appName);
+        $this->appName = 'AmivCloudApp';
+        parent::__construct($this->appName, $urlParams);
+        $this->appConfig = new AppConfig($this->appName);
 
         $container = $this->getContainer();
 
         $container->registerService('ApiSync', function($c) {
             return new ApiSync(
+                $c->query('AppName'),
                 $this->appConfig,
                 $c->query('ServerContainer')->getGroupManager(),
                 $c->query('ServerContainer')->getUserManager(),
@@ -59,10 +69,14 @@ class Application extends App {
         });
         $container->registerService('UserHooks', function($c) {
             return new UserHooks(
+                $c->query('AppName'),
                 $this->appConfig,
+                $c->query('ServerContainer')->getSession(),
                 $c->query('ServerContainer')->getGroupManager(),
                 $c->query('ServerContainer')->getUserManager(),
+                $c->query('ServerContainer')->getUserSession(),
                 $c->query('ServerContainer')->getShareManager(),
+                $c->query('ServerContainer')->getURLGenerator(),
                 $c->query('ServerContainer')->getRootFolder(),
                 $c->query('ServerContainer')->getLogger(),
                 $c->query('ApiSync')
@@ -70,22 +84,63 @@ class Application extends App {
         });
 
         // Controllers
-        $container->registerService("SettingsController", function($c) {
-            return new SettingsController(
-                $c->query("AppName"),
-                $c->query("Request"),
+        $container->registerService('LoginController', function($c) {
+            return new LoginController(
+                $c->query('AppName'),
+                $c->query('Request'),
+                $this->appConfig,
+                $c->query('ServerContainer')->getSession(),
                 $c->query('ServerContainer')->getURLGenerator(),
+                $c->query('ServerContainer')->getUserManager(),
+                $c->query('ServerContainer')->getUserSession(),
                 $c->query('ServerContainer')->getLogger(),
-                $this->appConfig
+                $c->query('ApiSync')
+            );
+        });
+        $container->registerService('SettingsController', function($c) {
+            return new SettingsController(
+                $c->query('AppName'),
+                $c->query('Request'),
+                $this->appConfig,
+                $c->query('ServerContainer')->getURLGenerator(),
+                $c->query('ServerContainer')->getLogger()
             );
         });
 
         // BackgroundJobs
         $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncTask', function($c) {
-            return new ApiSyncTask(
-                $c->query('ApiSync'),
-                $c->query('ServerContainer')->getLogger()
-            );
+            return new ApiSyncTask($c->query('ApiSync'));
         });
+    }
+
+    public function register() {
+        $container = $this->getContainer();
+        $session = $container->query('ServerContainer')->getSession();
+
+        // register user hooks
+        $container->query('UserHooks')->register();
+
+        if (!$session->exists('amiv.oauth_state')) {
+            $state = bin2hex(random_bytes(32));
+            $session->set('amiv.oauth_state', $state);
+        } else {
+            $state = $session->get('amiv.oauth_state');
+        }
+
+        $redirectUri = 'https://' .$this->appConfig->getSystemValue('trusted_domains', ['cloud.amiv.ethz.ch'])[0] . '/' .$container->query('ServerContainer')->getURLGenerator()->linkToRoute($this->appName.'.login.oauth');
+        $providerUrl = $this->appConfig->getApiServerUrl() .'oauth?response_type=token&client_id=' 
+            .urlencode($this->appConfig->getOAuthClientId()) .'&state=' .$state .'&redirect_uri=' .urlencode($redirectUri);
+
+        // register OAuth login method
+        \OC_App::registerLogIn([
+            'name' => 'AMIV Single-Sign-on',
+            'href' => $providerUrl,
+        ]);
+
+        if ($this->appConfig->getOAuthAutoRedirect() && $container->query('Request')->getPathInfo() === '/login' &&
+          !$container->query('ServerContainer')->getUserSession()->isLoggedIn()) {
+            header('Location: ' . $providerUrl);
+            exit();
+        }
     }
 }

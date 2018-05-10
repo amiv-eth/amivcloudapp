@@ -10,6 +10,7 @@
     <version>0.0.1</version>
     <namespace>AmivCloudApp</namespace>
     <types>
+		<prelogin/>
 		<authentication/>
 	</types>
     <category>auth</category>
@@ -21,7 +22,4 @@
     <background-jobs>
         <job>OCA\AmivCloudApp\BackgroundJob\ApiSyncTask</job>
     </background-jobs>
-    <settings>
-        <admin>OCA\AmivCloudApp\AdminSettings</admin>
-    </settings>
 </info>

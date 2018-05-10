@@ -25,3 +25,19 @@ diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/l
   		if (is_null($user)) {
   			// user does not exist
 --- 587,592 ----
+diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/lib/private/User/Session.php
+*** /original/nextcloud/private/User/Session.php	2018-02-20 11:00:00.316796734 +0100
+--- /modified/nextcloud/lib/private/User/Session.php	2018-02-20 12:00:00.828537353 +0100
+***************
+*** 399,404 ****
+				$this->manager->emit('\OC\User', 'preLogin', array($user, $password));
+			}
+
++			if ($this->isLoggedIn()) {
++				return true;
++			}
++
+			$isTokenPassword = $this->isTokenPassword($password);
+			if (!$isTokenPassword && $this->isTokenAuthEnforced()) {
+				throw new PasswordLoginForbiddenException();
+--- 399,408 ----

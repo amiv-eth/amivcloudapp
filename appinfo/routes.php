@@ -23,7 +23,6 @@
 
 return [
     "routes" => [
-       ["name" => "settings#save_settings", "url" => "/ajax/settings", "verb" => "PUT"],
-       ["name" => "settings#get_settings", "url" => "/ajax/settings", "verb" => "GET"],
+       ['name' => 'login#oauth', 'url' => '/oauth', 'verb' => 'GET'],
     ]
 ];

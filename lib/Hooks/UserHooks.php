@@ -24,39 +24,60 @@
 
 namespace OCA\AmivCloudApp\Hooks;
 
+use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\ApiUtil;
+use OCA\AmivCloudApp\AppConfig;
 use OCP\Files\IRootFolder;
 use OCP\Util;
+use OCP\ISession;
+use OCP\IGroupManager;
+use OCP\IUserSession;
+use OCP\IUserManager;
+use OCP\IURLGenerator;
+use OCP\ILogger;
 
 class UserHooks {
 
+    private $appName;
     private $config;
+    private $session;
     private $userManager;
+    private $userSession;
     private $groupManager;
     private $shareManager;
+    private $urlGenerator;
     private $rootFolder;
     private $logger;
     private $apiSync;
 
-    /** constructor for the UserHooks class */
-    public function __construct($config, $groupManager, $userManager, $shareManager, $rootFolder, $logger, $apiSync) {
-        // application configuration
+    public function __construct(string $appName,
+                                AppConfig $config,
+                                ISession $session,
+                                IGroupManager $groupManager,
+                                IUserManager $userManager,
+                                IUserSession $userSession,
+                                \OCP\Share\IManager $shareManager,
+                                IURLGenerator $urlGenerator,
+                                IRootFolder $rootFolder,
+                                ILogger $logger,
+                                ApiSync $apiSync) {
+        $this->appName = $appName;
         $this->config = $config;
-        // managers to add users resp. groups and assign users to groups
+        $this->session = $session;
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
-        // managers to create new folders in admin's home and share it with group
+        $this->userSession = $userSession;
         $this->shareManager = $shareManager;
+        $this->urlGenerator = $urlGenerator;
         $this->rootFolder = $rootFolder;
-        // logger
         $this->logger = $logger;
-        // ApiSync
         $this->apiSync = $apiSync;
     }
 
     /** call this function to register the hook and react to login events */
     public function register() {
         $this->userManager->listen('\OC\User', 'preLogin', [$this, 'preLogin']);
+        $this->userManager->listen('\OC\User', 'logout', [$this, 'logout']);
     }
 
 
@@ -85,45 +106,47 @@ class UserHooks {
         $user = str_replace("\0", '', $user);
         $password = str_replace("\0", '', $password);
 
-        // retrieve nextcloud user (or null if not existing)
-        $nextcloudUser = $this->userManager->get($user);
-
         // authenticate user with AMIV API post request to /sessions
         $pass = rawurlencode($password);
-        list($httpcode, $response) = ApiUtil::post($this->config->GetApiServerUrl(), 'sessions?embedded={"user":1}', 'username=' .$user .'&password=' .$pass);
+        list($httpcode, $session) = ApiUtil::post($this->config->getApiServerUrl(), 'sessions?embedded={"user":1}', 'username=' .$user .'&password=' .$pass);
 
         if($httpcode === 201) {
+            $this->session->set('amiv.api_token', $session->token);
             // user credentials valid in AMIV API
-            $apiToken = $response->token;
-            $apiUser = $response->user;
+            $apiToken = $session->token;
+            $apiUser = $session->user;
+
+            // retrieve nextcloud user (or null if not existing)
+            $nextcloudUser = $this->userManager->get($apiUser->_id);
 
             // create or update nextcloud user
             if ($nextcloudUser != null) {
                 $nextcloudUser->setPassword($password);
-                
-                $this->logger->info('User "' .$user .'" successfully updated', ['app' => 'AmivCloudApp']);
             } else {
-                if (strtolower($user) === $apiUser->nethz) {
-                    $user = strtolower($user);
-                }
-                $nextcloudUser = $this->userManager->createUser($user, $password);
-                $this->logger->info('User "' . $user .'" successfully created', ['app' => 'AmivCloudApp']);
+                $nextcloudUser = $this->userManager->createUser($apiUser->_id, $password);
+                $this->logger->info('preLogin: User "' . $user .'" successfully created', ['app' => $this->appName]);
             }
-            // TODO: investigate why this takes so long
-            // $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
+
+            $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
             $nextcloudUser->setEmailAddress($apiUser->email);
             $nextcloudUser->setQuota('0B');
 
-            // sync group memberships
+            $request = \OC::$server->getRequest();
+            $isWebdavRequest = strpos($request->getHeader('Content-Type'), 'text/xml') !== 0;
+
+            $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => $password], false);
+            $this->userSession->createSessionToken($request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
+
             $this->apiSync->setToken($apiToken);
             try {
                 $this->apiSync->syncUser($nextcloudUser, $apiUser);
             } catch (Exception $e) {
-                $this->logger->warning($e, ['app' => 'AmivCloudApp']);
-                $this->preventUserLogin($nextcloudUser->getUID());
+                $this->logger->warning($e, ['app' => $this->appName]);
             }
-            $this->logger->info('User "' . $user .'" successfully synchronized', ['app' => 'AmivCloudApp']);
         } else {
+            // retrieve nextcloud user with the given login name
+            $nextcloudUser = $this->userManager->get($user);
+
             // User couldn't be verified or API is not working properly: only allow nextcloud admins to login
             if ($nextcloudUser != null && !$this->groupManager->isAdmin($nextcloudUser->getUID())) {
                 $this->preventUserLogin($nextcloudUser->getUID());
@@ -131,8 +154,30 @@ class UserHooks {
         }
     }
 
+    /**
+     * logout Hook
+     * 
+     * Called once when the user logs out.
+     * Makes sure that the API session gets deleted when the user logs out.
+     */
+    public function logout() {
+        if ($this->session->exists('amiv.api_token')) {
+            $token = $this->session->get('amiv.api_token');
+            list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'sessions?where={"token":"' .$token .'"}', $token);
+            if ($httpcode === 200 && count($response->_items) === 1) {
+                $this->deleteApiSession($response->_items[0], $token);
+            }
+            $this->session->remove('amiv.api_token');
+        }
+    }
+
     /** raise error to prevent user login (only way to prevent login in preLogin hook) */
     private function preventUserLogin($user) {
-        throw new \OC\User\LoginException('Authentication of user "' .$user .'" failed with AMIV API.');
+        throw new \OC\User\LoginException('preLogin: Authentication of user "' .$user .'" failed with AMIV API.');
+    }
+
+    /** delete the given API session */
+    private function deleteApiSession($session, $token) {
+        ApiUtil::delete($this->config->getApiServerUrl(), 'sessions/' .$session->_id ,$session->_etag, $token);
     }
 }

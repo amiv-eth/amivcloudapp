@@ -58,42 +58,48 @@ class AppConfig {
      *
      * @var string
      */
-    private $_apiServerUrl = "ApiServerUrl";
+    private $_apiServerUrl = "amiv.api_url";
 
     /**
      * The config key for the api key
      * 
      * @var string
      */
-    private $_apiKey = 'ApiKey';
+    private $_apiKey = 'amiv.api_key';
+
+    /**
+     * The config key for the oauth client identifier
+     * 
+     * @var string
+     */
+    private $_oauthClientIdentifier = 'amiv.oauth_client_identifier';
+
+    /**
+     * The config key for the oauth redirect option
+     */
+    private $_oauthAutoRedirect = 'amiv.oauth_autoredirect';
 
     /**
      * The config key for the file owner account name
      *
      * @var string
      */
-    private $_fileOwnerAccount = "FileOwnerAccount";
+    private $_fileOwnerAccount = "amiv.file_owner";
 
     /**
      * The config key for the api admin groups
      *
      * @var string
      */
-    private $_apiAdminGroups = "ApiAdminGroups";
+    private $_apiAdminGroups = "amiv.api_admin_groups";
 
     /**
      * The config key for the internal group
      *
      * @var string
      */
-    private $_internalGroup = "InternalGroup";
+    private $_internalGroup = "amiv.internal_group";
 
-    /**
-     * The config key for the settings error
-     *
-     * @var string
-     */
-    private $_settingsError = "settings_error";
 
     /**
      * @param string $AppName - application name
@@ -105,46 +111,19 @@ class AppConfig {
     }
 
     /**
-     * Get value from the system configuration
-     * 
-     * @param string $key - key configuration
-     *
-     * @return string
+     * Get system configuration value
      */
-    public function GetSystemValue($key) {
-        if (!empty($this->config->getSystemValue($this->appName))
-            && array_key_exists($key, $this->config->getSystemValue($this->appName))) {
-            return $this->config->getSystemValue($this->appName)[$key];
-        }
-        return NULL;
+    public function getSystemValue($key, $defaultValue) {
+        return $this->config->getSystemValue($key, $defaultValue);
     }
 
     /**
-     * Save the api service address to the application configuration
-     *
-     * @param string $apiServer - api service address
-     */
-    public function SetApiServerUrl($apiServer) {
-        $apiServer = strtolower(trim($apiServer));
-        if (strlen($apiServer) > 0) {
-            $apiServer = rtrim($apiServer, "/") . "/";
-            if (!preg_match("/(^https?:\/\/)|^\//i", $apiServer)) {
-                $apiServer = "https://" . $apiServer;
-            }
-        }
-        $this->logger->info("SetApiServerUrl: " . $apiServer, ["app" => $this->appName]);
-        $this->config->setAppValue($this->appName, $this->_apiServerUrl, $apiServer);
-    }
-    /**
-     * Get the api service address from the application configuration
+     * Get the api service address from the configuration
      *
      * @return string
      */
-    public function GetApiServerUrl() {
-        $url = $this->config->getAppValue($this->appName, $this->_apiServerUrl, "");
-        if (empty($url)) {
-            $url = $this->getSystemValue($this->_apiServerUrl);
-        }
+    public function getApiServerUrl() {
+        $url = $this->config->getSystemValue($this->_apiServerUrl, "https://api.amiv.ethz.ch/");
         if ($url !== "/") {
             $url = rtrim($url, "/");
             if (strlen($url) > 0) {
@@ -153,108 +132,56 @@ class AppConfig {
         }
         return $url;
     }
-
+    
     /**
-     * Save the api key to the application configuration
+     * Get the api key from the configuration
      *
-     * @param string $apiKey - api key
+     * @return string
      */
-    public function SetApiKey($apiKey) {
-        $this->logger->info("SetApiKey: " . $apiKey, ["app" => $this->appName]);
-        $this->config->setAppValue($this->appName, $this->_apiKey, $apiKey);
+    public function getApiKey() {
+        return $this->config->getSystemValue($this->_apiKey, "");
     }
     
     /**
-     * Get the api key from the application configuration
+     * Get the OAuth client identifier from the configuration
      *
      * @return string
      */
-    public function GetApiKey() {
-        return $this->config->getAppValue($this->appName, $this->_apiKey, "");
+    public function getOAuthClientId() {
+        return $this->config->getSystemValue($this->_oauthClientIdentifier, "AMIV Cloud");
     }
 
     /**
-     * Save the file owner account to the application configuration
-     *
-     * @param string $account - file owner account
+     * Get the OAuth auto redirect from the configuration
      */
-    public function SetFileOwnerAccount($account) {
-        $account = trim($account);
-        $this->logger->info("SetFileOwnerAccount: " . $account, ["app" => $this->appName]);
-        $this->config->setAppValue($this->appName, $this->_fileOwnerAccount, $account);
+    public function getOAuthAutoRedirect() {
+        return $this->config->getSystemValue($this->_oauthAutoRedirect, false);
     }
 
     /**
-     * Get the file owner account from the application configuration
+     * Get the file owner account from the configuration
      *
      * @return string
      */
-    public function GetFileOwnerAccount() {
-        return $this->config->getAppValue($this->appName, $this->_fileOwnerAccount, "");
+    public function getFileOwnerAccount() {
+        return $this->config->getSystemValue($this->_fileOwnerAccount, "admin");
     }
 
     /**
-     * Save the admin groups from the api server to the application configuration
-     *
-     * @param array $groups - string of group names separated by comma
-     */
-    public function SetApiAdminGroups($groups) {
-        $this->logger->info("SetApiAdminGroups: " . $groups, ["app" => $this->appName]);
-        $this->config->setAppValue($this->appName, $this->_apiAdminGroups, $groups);
-    }
-
-    /**
-     * Get the admin groups from the api server from the application configuration
-     *
-     * @return string
-     */
-    public function GetApiAdminGroups() {
-        return $this->config->getAppValue($this->appName, $this->_apiAdminGroups, "");
-    }
-
-    /**
-     * Get the admin groups from the api server from the application configuration as array
+     * Get the admin groups from the api server from the configuration
      *
      * @return array
      */
-    public function GetApiAdminGroupsArray() {
-        return array_map('trim', explode(',', $this->config->getAppValue($this->appName, $this->_apiAdminGroups, "")));
+    public function getApiAdminGroups() {
+        return $this->config->getSystemValue($this->_apiAdminGroups, []);
     }
 
     /**
-     * Save the internal group to the application configuration
-     *
-     * @param string $internalGroup - internal group name
-     */
-    public function SetInternalGroup($internalGroup) {
-        $this->logger->info("SetInternalGroup: " . $internalGroup, ["app" => $this->appName]);
-        $this->config->setAppValue($this->appName, $this->_internalGroup, $internalGroup);
-    }
-
-    /**
-     * Get the internal group from the application configuration
+     * Get the internal group from the configuration
      *
      * @return string
      */
-    public function GetInternalGroup() {
-        return $this->config->getAppValue($this->appName, $this->_internalGroup, "");
-    }
-
-    /**
-     * Save the status settings
-     *
-     * @param boolean $value - error
-     */
-    public function SetSettingsError($value) {
-        $this->config->setAppValue($this->appName, $this->_settingsError, $value);
-    }
-
-    /**
-     * Get the status settings
-     *
-     * @return boolean
-     */
-    public function SettingsAreSuccessful() {
-        return empty($this->config->getAppValue($this->appName, $this->_settingsError, ""));
+    public function getInternalGroup() {
+        return $this->config->getSystemValue($this->_internalGroup, "member");
     }
 }

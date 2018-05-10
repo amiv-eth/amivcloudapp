@@ -34,7 +34,7 @@ class ApiUtil {
      * @param string $token
      */
     public static function get($url, $request, $token=null) {
-        return self::rawreq($url, $request, null, $token);
+        return self::rawreq($url, $request, null, null, $token);
     }
 
     /**
@@ -46,7 +46,19 @@ class ApiUtil {
      * @param string $token
      */
     public static function post($url, $request, $postData, $token=null) {
-        return self::rawreq($url, $request, $postData, $token);
+        return self::rawreq($url, $request, $postData, null, $token);
+    }
+
+    /**
+     * send DELETE request to AMIV API
+     * 
+     * @param string $url
+     * @param string $request
+     * @param string $etag
+     * @param string $token
+     */
+    public static function delete($url, $request, $etag, $token=null) {
+        return self::rawreq($url, $request, null, $etag, $token);
     }
 
     /**
@@ -57,7 +69,7 @@ class ApiUtil {
      * @param string $postData
      * @param string $token
      */
-    private static function rawreq($url, $request, $postData=null, $token=null) {
+    private static function rawreq($url, $request, $postData=null, $etag=null, $token=null) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url .$request);
         // if we have post data, put it in request
@@ -71,9 +83,14 @@ class ApiUtil {
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
         curl_setopt($ch, CURLOPT_TIMEOUT, 5); //timeout in seconds
         curl_setopt($ch, CURLINFO_HEADER_OUT, true);
+        $header = [];
         if ($token != null) {
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: ' .$token]);
+            $header[] = 'Authorization: ' .$token;
         }
+        if ($etag != null) {
+            $header[] = 'If-Match: ' .$etag;
+        }
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
         curl_setopt($ch, CURLOPT_VERBOSE, true);
         $response = json_decode(curl_exec($ch));
         $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

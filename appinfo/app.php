@@ -27,10 +27,5 @@ use OCP\App;
 use \OCP\BackgroundJob;
 use OCA\AmivCloudApp\AppInfo\Application;
 
-/**
- * Administration settings
- */
-App::registerAdmin("amivcloudapp", "settings");
-
 $app = new Application();
-$app->getContainer()->query('UserHooks')->register();
+$app->register();
