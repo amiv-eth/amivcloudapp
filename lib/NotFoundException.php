@@ -21,7 +21,7 @@
  */
 
 
-namespace OCA\AmivCloudApp\Exception;
+namespace OCA\AmivCloudApp;
 
 /**
  * NotFoundException
