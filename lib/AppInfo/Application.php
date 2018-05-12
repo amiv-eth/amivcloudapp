@@ -97,15 +97,6 @@ class Application extends App {
                 $c->query('ApiSync')
             );
         });
-        $container->registerService('SettingsController', function($c) {
-            return new SettingsController(
-                $c->query('AppName'),
-                $c->query('Request'),
-                $this->appConfig,
-                $c->query('ServerContainer')->getURLGenerator(),
-                $c->query('ServerContainer')->getLogger()
-            );
-        });
 
         // BackgroundJobs
         $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncTask', function($c) {
@@ -137,7 +128,7 @@ class Application extends App {
             'href' => $providerUrl,
         ]);
 
-        if ($this->appConfig->getOAuthAutoRedirect() && $container->query('Request')->getPathInfo() === '/login' &&
+        if ($this->appConfig->getOAuthAutoRedirect() && !\OC::$CLI && $container->query('Request')->getPathInfo() === '/login' &&
           !$container->query('ServerContainer')->getUserSession()->isLoggedIn()) {
             header('Location: ' . $providerUrl);
             exit();

@@ -23,10 +23,8 @@
 
 namespace OCA\AmivCloudApp\BackgroundJob;
 
-use OCA\AmivCloudApp\AppInfo\Application;
 use OCA\AmivCloudApp\ApiSync;
 use OC\BackgroundJob\TimedJob;
-use OCP\ILogger;
 
 
 class ApiSyncTask extends TimedJob {
