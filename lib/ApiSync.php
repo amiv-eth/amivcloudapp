@@ -104,12 +104,27 @@ class ApiSync {
     }
 
     /**
+     * Create a new user in nextcloud linked to the given API user
+     */
+    public function createUser($apiUser) {
+        $password = substr(base64_encode(random_bytes(64)), 0, 30);
+        $nextcloudUser = $this->userManager->createUser($apiUser->_id, $password);
+        $this->logger->info('User "' . $user->getUID() .'" successfully created', ['app' => $this->appName]);
+        return $nextcloudUser;
+    }
+
+    /**
      * Sync group memberships of the given nextcloud user
      * 
      * @param object $nextcloudUser
      * @param string $apiUser
      */
     public function syncUser($nextcloudUser, $apiUser) {
+        // sync user information
+        $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
+        $nextcloudUser->setEmailAddress($apiUser->email);
+        $nextcloudUser->setQuota('512 KB');
+
         // retrieve list of nextcloud groups for this user
         $nextcloudGroups = $this->groupManager->getUserGroups($nextcloudUser);
 

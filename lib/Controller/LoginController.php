@@ -83,27 +83,21 @@ class LoginController extends Controller {
     }
 
     private function login($apiUser) {
-        $user = $this->userManager->get($apiUser->_id);
+        $nextcloudUser = $this->userManager->get($apiUser->_id);
 
         if ($this->userSession->isLoggedIn()) {
             throw new LoginException('A user session already exists for this device!');
         }
 
-        if (null === $user) {
-            $password = substr(base64_encode(random_bytes(64)), 0, 30);
-            $user = $this->userManager->createUser($apiUser->_id, $password);
-            $this->logger->info('User "' . $user->getUID() .'" successfully created', ['app' => $this->appName]);
+        if (null === $nextcloudUser) {
+            $nextcloudUser = $this->apiSync->createUser($apiUser);
         }
 
-        $user->setDisplayName($apiUser->firstname . ' ' .$apiUser->lastname);
-        $user->setEMailAddress($apiUser->email);
-        $user->setQuota('0B');
-
-        $this->userSession->completeLogin($user, ['loginName' => $user->getUID(), 'password' => ''], false);
-        $this->userSession->createSessionToken($this->request, $user->getUID(), $user->getUID());
+        $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => ''], false);
+        $this->userSession->createSessionToken($this->request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
 
         try {
-            $this->apiSync->syncUser($user, $apiUser);
+            $this->apiSync->syncUser($nextcloudUser, $apiUser);
         } catch (Exception $e) {
             $this->logger->warning($e, ['app' => $this->appName]);
         }

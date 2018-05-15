@@ -119,17 +119,9 @@ class UserHooks {
             // retrieve nextcloud user (or null if not existing)
             $nextcloudUser = $this->userManager->get($apiUser->_id);
 
-            // create or update nextcloud user
-            if ($nextcloudUser != null) {
-                $nextcloudUser->setPassword($password);
-            } else {
-                $nextcloudUser = $this->userManager->createUser($apiUser->_id, $password);
-                $this->logger->info('preLogin: User "' . $user .'" successfully created', ['app' => $this->appName]);
+            if (null === $nextcloudUser) {
+                $nextcloudUser = $this->apiSync->createUser($apiUser);
             }
-
-            $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
-            $nextcloudUser->setEmailAddress($apiUser->email);
-            $nextcloudUser->setQuota('0B');
 
             $request = \OC::$server->getRequest();
             $isWebdavRequest = strpos($request->getHeader('Content-Type'), 'text/xml') !== 0;
