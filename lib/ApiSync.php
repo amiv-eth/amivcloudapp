@@ -123,7 +123,7 @@ class ApiSync {
         // sync user information
         $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
         $nextcloudUser->setEmailAddress($apiUser->email);
-        $nextcloudUser->setQuota('512 KB');
+        $nextcloudUser->setQuota('10 MB');
 
         // retrieve list of nextcloud groups for this user
         $nextcloudGroups = $this->groupManager->getUserGroups($nextcloudUser);
