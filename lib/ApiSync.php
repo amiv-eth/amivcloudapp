@@ -109,7 +109,7 @@ class ApiSync {
     public function createUser($apiUser) {
         $password = substr(base64_encode(random_bytes(64)), 0, 30);
         $nextcloudUser = $this->userManager->createUser($apiUser->_id, $password);
-        $this->logger->info('User "' . $user->getUID() .'" successfully created', ['app' => $this->appName]);
+        $this->logger->info('User "' . $nextcloudUser->getUID() .'" successfully created', ['app' => $this->appName]);
         return $nextcloudUser;
     }
 
