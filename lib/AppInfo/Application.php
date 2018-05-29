@@ -128,7 +128,7 @@ class Application extends App {
             'href' => $providerUrl,
         ]);
 
-        if ($this->appConfig->getOAuthAutoRedirect() && !\OC::$CLI && $container->query('Request')->getPathInfo() === '/login' &&
+        if (!isset($_GET['no_redirect']) && $this->appConfig->getOAuthAutoRedirect() && !\OC::$CLI && $container->query('Request')->getPathInfo() === '/login' &&
           !$container->query('ServerContainer')->getUserSession()->isLoggedIn()) {
             header('Location: ' . $providerUrl);
             exit();
