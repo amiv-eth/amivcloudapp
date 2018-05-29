@@ -86,7 +86,7 @@ class LoginController extends Controller {
         $nextcloudUser = $this->userManager->get($apiUser->_id);
 
         if ($this->userSession->isLoggedIn()) {
-            throw new LoginException('A user session already exists for this device!');
+            return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
         }
 
         if (null === $nextcloudUser) {
