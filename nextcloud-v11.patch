@@ -97,3 +97,4 @@ diff -crB /original/nextcloud/remote.php /modified/nextcloud/remote.php
   
   	switch ($app) {
   		case 'core':
+
