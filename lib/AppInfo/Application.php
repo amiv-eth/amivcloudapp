@@ -32,6 +32,8 @@ use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\Controller\LoginController;
 use OCA\AmivCloudApp\Controller\SettingsController;
 use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
+use OCA\AmivCloudApp\BackgroundJob\QueuedSyncTask;
+use OCA\AmivCloudApp\Db\QueuedTaskMapper;
 
 class Application extends App {
 
@@ -56,7 +58,7 @@ class Application extends App {
 
         $container = $this->getContainer();
 
-        $container->registerService('ApiSync', function($c) {
+        $container->registerService('OCA\AmivCloudApp\ApiSync', function($c) {
             return new ApiSync(
                 $c->query('AppName'),
                 $this->appConfig,
@@ -67,6 +69,12 @@ class Application extends App {
                 $c->query('ServerContainer')->getLogger()
             );
         });
+        $container->registerService('OCA\AmivCloudApp\Db\QueuedTaskMapper', function($c) {
+            return new QueuedTaskMapper(
+                $c->query('DatabaseConnection')
+            );
+        });
+
         $container->registerService('UserHooks', function($c) {
             return new UserHooks(
                 $c->query('AppName'),
@@ -79,7 +87,8 @@ class Application extends App {
                 $c->query('ServerContainer')->getURLGenerator(),
                 $c->query('ServerContainer')->getRootFolder(),
                 $c->query('ServerContainer')->getLogger(),
-                $c->query('ApiSync')
+                $c->query('OCA\AmivCloudApp\ApiSync'),
+                $c->query('OCA\AmivCloudApp\Db\QueuedTaskMapper')
             );
         });
 
@@ -94,13 +103,24 @@ class Application extends App {
                 $c->query('ServerContainer')->getUserManager(),
                 $c->query('ServerContainer')->getUserSession(),
                 $c->query('ServerContainer')->getLogger(),
-                $c->query('ApiSync')
+                $c->query('OCA\AmivCloudApp\ApiSync')
             );
         });
 
         // BackgroundJobs
         $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncTask', function($c) {
-            return new ApiSyncTask($c->query('ApiSync'));
+            return new ApiSyncTask(
+                $c->query('OCA\AmivCloudApp\Db\QueuedTaskMapper'),
+                $c->query('OCA\AmivCloudApp\ApiSync')
+            );
+        });
+        $container->registerService('OCA\AmivCloudApp\BackgroundJob\QueuedSyncTask', function($c) {
+            return new QueuedSyncTask(
+                $this->appName,
+                $c->query('OCA\AmivCloudApp\Db\QueuedTaskMapper'),
+                $c->query('OCA\AmivCloudApp\ApiSync'),
+                $c->query('ServerContainer')->getLogger()
+            );
         });
     }
 

@@ -25,19 +25,23 @@ namespace OCA\AmivCloudApp\BackgroundJob;
 
 use OCA\AmivCloudApp\ApiSync;
 use OC\BackgroundJob\TimedJob;
-
+use OCA\AmivCloudApp\Db\QueuedTaskMapper;
+use OCA\AmivCloudApp\Db\QueuedTask;
 
 class ApiSyncTask extends TimedJob {
 
     /** @var ApiSync */
-    protected $apiSync;
+		protected $apiSync;
+
+		/** @var QueuedTaskMapper */
+    protected $queuedTaskMapper;
 
 		/**
-		 * @param string $appName
+		 * @param QueuedTaskMapper $queuedTaskMapper
 		 * @param ApiSync $apiSync
-		 * @param ILogger $logger
 		 */
-		public function __construct(ApiSync $apiSync) {
+		public function __construct(QueuedTaskMapper $queuedTaskMapper, ApiSync $apiSync) {
+				$this->queuedTaskMapper = $queuedTaskMapper;
 				$this->apiSync = $apiSync;
 
 				// Run every 15 minutes
@@ -45,6 +49,7 @@ class ApiSyncTask extends TimedJob {
 		}
 
     protected function run($argument) {
+				$this->queuedTaskMapper->clearAll(QueuedTask::TYPE_SYNC_USER);
         $this->apiSync->syncAllUsers();
     }
 }

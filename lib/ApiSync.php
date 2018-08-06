@@ -30,6 +30,12 @@ use OCP\IGroupManager;
 use OCP\IUserManager;
 use OCP\ILogger;
 
+
+/**
+ * ApiSync class
+ *
+ * This is the utility class to actually sync the data from the API with the data in Nextcloud.
+ */
 class ApiSync {
 
     /** @var string */
@@ -78,7 +84,7 @@ class ApiSync {
     }
 
     /**
-     * Get api user id from nextcloud user object.
+     * Get api user id from Nextcloud user object.
      */
     public function getApiUserFromUsername($username) {
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$username, $this->getToken());
@@ -89,37 +95,68 @@ class ApiSync {
     }
 
     /**
-     * Sync group memberships of all nextcloud users
+     * Remove API session with the given token
+     */
+    public function clearApiSession($token) {
+        $token = $this->session->get('amiv.api_token');
+        list($httpcode, $session) = ApiUtil::get($this->config->getApiServerUrl(), 'sessions/' .$token, $token);
+        if ($httpcode === 200) {
+            ApiUtil::delete($this->config->getApiServerUrl(), 'sessions/' .$session->_id ,$session->_etag, $token);
+        } else {
+            $this->logger->info('(ApiSync-1) Could not find user session with token "' .$token .'" in API.', ['app' => 'AmivCloudApp']);
+        }
+    }
+
+    /**
+     * Sync group memberships of all Nextcloud users
      */
     public function syncAllUsers() {
         $nextcloudUsers = $this->userManager->search('');
         foreach ($nextcloudUsers as $nextcloudUser) {
             try {
                 $apiUser = $this->getApiUserFromUsername($nextcloudUser->getUID());
-                $this->syncUser($nextcloudUser, $apiUser);
+                $this->syncUserInternal($nextcloudUser, $apiUser);
             } catch (NotFoundException $e) {
-            $this->logger->info('Could not find user "' .$nextcloudUser->getUID() .'" in api.', ['app' => 'AmivCloudApp']);
+                $this->logger->info('(ApiSync-2) Could not find user "' .$nextcloudUser->getUID() .'" in API.', ['app' => 'AmivCloudApp']);
             }
         }
     }
 
     /**
-     * Create a new user in nextcloud linked to the given API user
+     * Sync group memberships of the given API user id
+     */
+    public function syncUser($userId) {
+        try {
+            $apiUser = $this->getApiUserFromUsername($nextcloudUser->getUID());
+            $nextcloudUser = $this->userManager->get($apiUser->_id);
+
+            if (null === $nextcloudUser) {
+                $nextcloudUser = $this->createUser($apiUser);
+            }
+
+            $this->syncUserInternal($nextcloudUser, $apiUser);
+        } catch (NotFoundException $e) {
+            $this->logger->info('(ApiSync-3) Could not find user "' .$nextcloudUser->getUID() .'" in API.', ['app' => 'AmivCloudApp']);
+        }
+    }
+
+    /**
+     * Create a new user in Nextcloud linked to the given API user
      */
     public function createUser($apiUser) {
         $password = substr(base64_encode(random_bytes(64)), 0, 30);
         $nextcloudUser = $this->userManager->createUser($apiUser->_id, $password);
-        $this->logger->info('User "' . $nextcloudUser->getUID() .'" successfully created', ['app' => $this->appName]);
+        $this->logger->info('(ApiSync-4) User "' . $nextcloudUser->getUID() .'" successfully created', ['app' => $this->appName]);
         return $nextcloudUser;
     }
 
     /**
-     * Sync group memberships of the given nextcloud user
+     * Sync group memberships of the given Nextcloud user
      * 
      * @param object $nextcloudUser
      * @param string $apiUser
      */
-    public function syncUser($nextcloudUser, $apiUser) {
+    private function syncUserInternal($nextcloudUser, $apiUser) {
         // sync user information
         $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
         $nextcloudUser->setEmailAddress($apiUser->email);
@@ -172,7 +209,7 @@ class ApiSync {
         }
     }
 
-    /** adds the given nextcloud user to the group with the given name */
+    /** adds the given Nextcloud user to the group with the given name */
     private function addUserToGroup($groupName, $nextCloudUser) {
         // create group if not yet in nextcloud
         $groupCreated = false;
@@ -193,7 +230,7 @@ class ApiSync {
      * Helper function to create a group share in nextcloud. We want the groups files to
      * be owned by the administrator account, so they do not get deleted upon user deletion.
      * 
-     * 1. check if the folder exsits in the admin account. If not create it.
+     * 1. check if the folder exists in the admin account. If not create it.
      * 2. share the administrators folder with the given group
      *
      * users in the group have full read/write permissions, but they are not allowed to re-share it
@@ -227,6 +264,6 @@ class ApiSync {
         $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE | \OCP\Constants::PERMISSION_SHARE);
         // actually create the share and log
         $this->shareManager->createShare($share);
-        $this->logger->info('Shared folder "' .$groupId .'" created', ['app' => 'AmivCloudApp']);
+        $this->logger->info('(ApiSync-5) Shared folder "' .$groupId .'" created', ['app' => 'AmivCloudApp']);
     }
 }

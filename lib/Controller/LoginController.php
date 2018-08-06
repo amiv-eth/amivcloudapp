@@ -96,11 +96,14 @@ class LoginController extends Controller {
         $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => ''], false);
         $this->userSession->createSessionToken($this->request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
 
-        try {
-            $this->apiSync->syncUser($nextcloudUser, $apiUser);
-        } catch (Exception $e) {
-            $this->logger->warning($e, ['app' => $this->appName]);
-        }
+        $queuedTask = new QueuedTask(QueuedTask::TYPE_SYNC_USER, $apiUser->_id);
+        $this->queuedTaskMapper->insert($queuedTask);
+
+        // try {
+        //     $this->apiSync->syncUser($nextcloudUser, $apiUser);
+        // } catch (Exception $e) {
+        //     $this->logger->warning($e, ['app' => $this->appName]);
+        // }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
     }

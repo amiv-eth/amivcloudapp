@@ -27,6 +27,8 @@ namespace OCA\AmivCloudApp\Hooks;
 use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\ApiUtil;
 use OCA\AmivCloudApp\AppConfig;
+use OCA\AmivCloudApp\Db\QueuedTask;
+use OCA\AmivCloudApp\Db\QueuedTaskMapper;
 use OCP\Files\IRootFolder;
 use OCP\Util;
 use OCP\ISession;
@@ -49,6 +51,7 @@ class UserHooks {
     private $rootFolder;
     private $logger;
     private $apiSync;
+    private $queuedTaskMapper;
 
     public function __construct(string $appName,
                                 AppConfig $config,
@@ -60,7 +63,8 @@ class UserHooks {
                                 IURLGenerator $urlGenerator,
                                 IRootFolder $rootFolder,
                                 ILogger $logger,
-                                ApiSync $apiSync) {
+                                ApiSync $apiSync,
+                                QueuedTaskMapper $queuedTaskMapper) {
         $this->appName = $appName;
         $this->config = $config;
         $this->session = $session;
@@ -72,6 +76,7 @@ class UserHooks {
         $this->rootFolder = $rootFolder;
         $this->logger = $logger;
         $this->apiSync = $apiSync;
+        $this->queuedTaskMapper = $queuedTaskMapper;
     }
 
     /** call this function to register the hook and react to login events */
@@ -124,18 +129,21 @@ class UserHooks {
             }
 
             $request = \OC::$server->getRequest();
-            $isWebdavRequest = strpos($request->getHeader('Content-Type'), 'text/xml') !== 0;
 
             $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => $password], false);
             $this->userSession->createSessionToken($request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
 
-            $this->apiSync->setToken($apiToken);
-            try {
-                $this->apiSync->syncUser($nextcloudUser, $apiUser);
-            } catch (Exception $e) {
-                $this->logger->warning($e, ['app' => $this->appName]);
-            }
+            $queuedTask = new QueuedTask(QueuedTask::TYPE_SYNC_USER, $apiUser->_id);
+            $this->queuedTaskMapper->insert($queuedTask);
+
+            // $this->apiSync->setToken($apiToken);
+            // try {
+            //     $this->apiSync->syncUser($nextcloudUser, $apiUser);
+            // } catch (Exception $e) {
+            //     $this->logger->warning($e, ['app' => $this->appName]);
+            // }
         } else {
+            $this->logger->error('(UserHook-preLogin-1) API response for user "' .$user .'" with status code ' .$httpcode .'(' .json_encode($session) .')', ['app' => $this->appName]);
             // retrieve nextcloud user with the given login name
             $nextcloudUser = $this->userManager->get($user);
 
@@ -155,21 +163,14 @@ class UserHooks {
     public function logout() {
         if ($this->session->exists('amiv.api_token')) {
             $token = $this->session->get('amiv.api_token');
-            list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'sessions?where={"token":"' .$token .'"}', $token);
-            if ($httpcode === 200 && count($response->_items) === 1) {
-                $this->deleteApiSession($response->_items[0], $token);
-            }
+            $queuedTask = new QueuedTask(QueuedTask::TYPE_CLEAR_SESSION, $token);
+            $this->queuedTaskMapper->insert($queuedTask);
             $this->session->remove('amiv.api_token');
         }
     }
 
     /** raise error to prevent user login (only way to prevent login in preLogin hook) */
     private function preventUserLogin($user) {
-        throw new \OC\User\LoginException('preLogin: Authentication of user "' .$user .'" failed with AMIV API.');
-    }
-
-    /** delete the given API session */
-    private function deleteApiSession($session, $token) {
-        ApiUtil::delete($this->config->getApiServerUrl(), 'sessions/' .$session->_id ,$session->_etag, $token);
+        throw new \OC\User\LoginException('Authentication of user "' .$user .'" failed with AMIV API.');
     }
 }
