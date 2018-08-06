@@ -13,10 +13,12 @@ use OCP\IUserManager;
 use OCP\IURLGenerator;
 use OCP\IGroupManager;
 use OCP\ILogger;
+use OCP\BackgroundJob\IJobList;
 use OC\User\LoginException;
 use OCA\AmivCloudApp\AppConfig;
 use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\ApiUtil;
+use OCA\AmivCloudApp\BackgroundJob\ApiSyncUserTask;
 
 class LoginController extends Controller {
     /** @var AppConfig */
@@ -31,6 +33,8 @@ class LoginController extends Controller {
     private $userSession;
     /** @var ILogger */
     private $logger;
+    /** @var IJobList */
+    private $jobList;
     
     /** @var ApiSync */
     private $apiSync;
@@ -44,6 +48,7 @@ class LoginController extends Controller {
         IUserManager $userManager,
         IUserSession $userSession,
         ILogger $logger,
+        IJobList $jobList
         ApiSync $apiSync
     ) {
         parent::__construct($appName, $request);
@@ -53,6 +58,7 @@ class LoginController extends Controller {
         $this->userManager = $userManager;
         $this->userSession = $userSession;
         $this->logger = $logger;
+        $this->jobList = $jobList;
         $this->apiSync = $apiSync;
     }
 
@@ -96,8 +102,7 @@ class LoginController extends Controller {
         $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => ''], false);
         $this->userSession->createSessionToken($this->request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
 
-        $queuedTask = new QueuedTask(QueuedTask::TYPE_SYNC_USER, $apiUser->_id);
-        $this->queuedTaskMapper->insert($queuedTask);
+        $this->jobList->add(ApiSyncUserTask::class, $apiUser->_id);
 
         // try {
         //     $this->apiSync->syncUser($nextcloudUser, $apiUser);

@@ -20,6 +20,5 @@
     </dependencies>
     <background-jobs>
         <job>OCA\AmivCloudApp\BackgroundJob\ApiSyncTask</job>
-        <job>OCA\AmivCloudApp\BackgroundJob\QueuedSyncTask</job>
     </background-jobs>
 </info>

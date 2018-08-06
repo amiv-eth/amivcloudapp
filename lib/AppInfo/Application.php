@@ -69,11 +69,6 @@ class Application extends App {
                 $c->query('ServerContainer')->getLogger()
             );
         });
-        $container->registerService('OCA\AmivCloudApp\Db\QueuedTaskMapper', function($c) {
-            return new QueuedTaskMapper(
-                $c->query('DatabaseConnection')
-            );
-        });
 
         $container->registerService('UserHooks', function($c) {
             return new UserHooks(
@@ -88,7 +83,7 @@ class Application extends App {
                 $c->query('ServerContainer')->getRootFolder(),
                 $c->query('ServerContainer')->getLogger(),
                 $c->query('OCA\AmivCloudApp\ApiSync'),
-                $c->query('OCA\AmivCloudApp\Db\QueuedTaskMapper')
+                $c->query('JobList')
             );
         });
 
@@ -110,14 +105,21 @@ class Application extends App {
         // BackgroundJobs
         $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncTask', function($c) {
             return new ApiSyncTask(
-                $c->query('OCA\AmivCloudApp\Db\QueuedTaskMapper'),
                 $c->query('OCA\AmivCloudApp\ApiSync')
             );
         });
-        $container->registerService('OCA\AmivCloudApp\BackgroundJob\QueuedSyncTask', function($c) {
-            return new QueuedSyncTask(
+        $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncUserTask', function($c) {
+            return new ApiSyncUserTask(
                 $this->appName,
-                $c->query('OCA\AmivCloudApp\Db\QueuedTaskMapper'),
+                $c->query('JobList'),
+                $c->query('OCA\AmivCloudApp\ApiSync'),
+                $c->query('ServerContainer')->getLogger()
+            );
+        });
+        $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiClearSessionTask', function($c) {
+            return new ApiSyncUserTask(
+                $this->appName,
+                $c->query('JobList'),
                 $c->query('OCA\AmivCloudApp\ApiSync'),
                 $c->query('ServerContainer')->getLogger()
             );

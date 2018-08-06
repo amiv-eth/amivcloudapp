@@ -27,8 +27,6 @@ namespace OCA\AmivCloudApp\Hooks;
 use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\ApiUtil;
 use OCA\AmivCloudApp\AppConfig;
-use OCA\AmivCloudApp\Db\QueuedTask;
-use OCA\AmivCloudApp\Db\QueuedTaskMapper;
 use OCP\Files\IRootFolder;
 use OCP\Util;
 use OCP\ISession;
@@ -37,6 +35,9 @@ use OCP\IUserSession;
 use OCP\IUserManager;
 use OCP\IURLGenerator;
 use OCP\ILogger;
+use OCP\BackgroundJob\IJobList;
+use OCA\AmivCloudApp\BackgroundJob\ApiSyncUserTask;
+use OCA\AmivCloudApp\BackgroundJob\ApiClearSessionTask;
 
 class UserHooks {
 
@@ -51,7 +52,7 @@ class UserHooks {
     private $rootFolder;
     private $logger;
     private $apiSync;
-    private $queuedTaskMapper;
+    private $jobList;
 
     public function __construct(string $appName,
                                 AppConfig $config,
@@ -64,7 +65,7 @@ class UserHooks {
                                 IRootFolder $rootFolder,
                                 ILogger $logger,
                                 ApiSync $apiSync,
-                                QueuedTaskMapper $queuedTaskMapper) {
+                                IJobList $jobList) {
         $this->appName = $appName;
         $this->config = $config;
         $this->session = $session;
@@ -76,7 +77,7 @@ class UserHooks {
         $this->rootFolder = $rootFolder;
         $this->logger = $logger;
         $this->apiSync = $apiSync;
-        $this->queuedTaskMapper = $queuedTaskMapper;
+        $this->jobList = $jobList;
     }
 
     /** call this function to register the hook and react to login events */
@@ -133,8 +134,7 @@ class UserHooks {
             $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => $password], false);
             $this->userSession->createSessionToken($request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
 
-            $queuedTask = new QueuedTask(QueuedTask::TYPE_SYNC_USER, $apiUser->_id);
-            $this->queuedTaskMapper->insert($queuedTask);
+            $this->jobList->add(ApiSyncUserTask::class, $apiUser->_id);
 
             // $this->apiSync->setToken($apiToken);
             // try {
@@ -163,8 +163,7 @@ class UserHooks {
     public function logout() {
         if ($this->session->exists('amiv.api_token')) {
             $token = $this->session->get('amiv.api_token');
-            $queuedTask = new QueuedTask(QueuedTask::TYPE_CLEAR_SESSION, $token);
-            $this->queuedTaskMapper->insert($queuedTask);
+            $this->jobList->add(ApiClearSessionTask::class, $token);
             $this->session->remove('amiv.api_token');
         }
     }

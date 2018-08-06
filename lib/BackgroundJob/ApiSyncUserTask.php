@@ -20,28 +20,43 @@
  *
  */
 
-
 namespace OCA\AmivCloudApp\BackgroundJob;
 
 use OCA\AmivCloudApp\ApiSync;
 use OC\BackgroundJob\TimedJob;
+use OCP\BackgroundJob\IJobList;
 
-class ApiSyncTask extends TimedJob {
+/**
+ * ApiSyncUserTask class
+ * 
+ * This task syncs a single user (scheduled on login).
+ */
+class ApiSyncUserTask extends TimedJob {
 
+		/** @var string */
+		protected $appName;
     /** @var ApiSync */
 		protected $apiSync;
+		/** @var IJobList */
+		protected $jobList;
+    /** @var ILogger */
+    private $logger;
 
 		/**
 		 * @param ApiSync $apiSync
 		 */
-		public function __construct(ApiSync $apiSync) {
+		public function __construct($appName, IJobList $jobList, ApiSync $apiSync, ILogger $logger) {
+				$this->appName = $appName;
+				$this->jobList = $jobList;
 				$this->apiSync = $apiSync;
-
-				// Run every 15 minutes
-				$this->setInterval(60*15);
+				$this->logger = $logger;
 		}
 
+		/**
+		 * @param $argument API user id
+		 */
     protected function run($argument) {
-        $this->apiSync->syncAllUsers();
+				$this->apiSync->syncUser($argument);
+				$this->jobList->remove(ApiSyncUserTask::class, $argument);
     }
 }
