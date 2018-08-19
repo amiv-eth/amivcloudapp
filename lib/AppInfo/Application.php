@@ -32,8 +32,8 @@ use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\Controller\LoginController;
 use OCA\AmivCloudApp\Controller\SettingsController;
 use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
-use OCA\AmivCloudApp\BackgroundJob\QueuedSyncTask;
-use OCA\AmivCloudApp\Db\QueuedTaskMapper;
+use OCA\AmivCloudApp\BackgroundJob\ApiSyncUserTask;
+use OCA\AmivCloudApp\BackgroundJob\ApiClearSessionTask;
 
 class Application extends App {
 

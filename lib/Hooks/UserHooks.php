@@ -135,13 +135,6 @@ class UserHooks {
             $this->userSession->createSessionToken($request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
 
             $this->jobList->add(ApiSyncUserTask::class, $apiUser->_id);
-
-            // $this->apiSync->setToken($apiToken);
-            // try {
-            //     $this->apiSync->syncUser($nextcloudUser, $apiUser);
-            // } catch (Exception $e) {
-            //     $this->logger->warning($e, ['app' => $this->appName]);
-            // }
         } else {
             $this->logger->error('(UserHook-preLogin-1) API response for user "' .$user .'" with status code ' .$httpcode .'(' .json_encode($session) .')', ['app' => $this->appName]);
             // retrieve nextcloud user with the given login name

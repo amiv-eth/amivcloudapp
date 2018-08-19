@@ -58,7 +58,7 @@ class ApiUtil {
      * @param string $token
      */
     public static function delete($url, $request, $etag, $token=null) {
-        return self::rawreq($url, $request, null, $etag, $token);
+        return self::rawreq($url, $request, null, $etag, $token, 'DELETE');
     }
 
     /**
@@ -69,13 +69,16 @@ class ApiUtil {
      * @param string $postData
      * @param string $token
      */
-    private static function rawreq($url, $request, $postData=null, $etag=null, $token=null) {
+    private static function rawreq($url, $request, $postData=null, $etag=null, $token=null, $customMethod=null) {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url .$request);
         // if we have post data, put it in request
         if ($postData != null) {
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        }
+        if ($customMethod != null) {
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $customMethod);
         }
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);

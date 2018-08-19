@@ -25,6 +25,7 @@ namespace OCA\AmivCloudApp\BackgroundJob;
 use OCA\AmivCloudApp\ApiSync;
 use OC\BackgroundJob\TimedJob;
 use OCP\BackgroundJob\IJobList;
+use OCP\ILogger;
 
 /**
  * ApiClearSessionTask class
@@ -54,6 +55,6 @@ class ApiClearSessionTask extends TimedJob {
 
     protected function run($argument) {
 				$this->apiSync->clearApiSession($argument);
-				$this->jobList->remove(ApiSyncUserTask::class, $argument);
+				$this->jobList->remove(ApiClearSessionTask::class, $argument);
     }
 }
