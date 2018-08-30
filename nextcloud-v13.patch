@@ -25,7 +25,7 @@ diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/l
 		if (is_null($user)) {
 --- 589,594 ----
 diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/lib/private/User/Session.php
-*** /original/nextcloud/private/User/Session.php	2018-02-20 11:00:00.316796734 +0100
+*** /original/nextcloud/lib/private/User/Session.php	2018-02-20 11:00:00.316796734 +0100
 --- /modified/nextcloud/lib/private/User/Session.php	2018-02-20 12:00:00.828537353 +0100
 ***************
 *** 399,404 ****
@@ -41,7 +41,7 @@ diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/l
 				throw new PasswordLoginForbiddenException();
 --- 399,408 ----
 diff -crB /original/nextcloud/lib/private/User/Session.php /modified/nextcloud/lib/private/User/Session.php
-*** /original/nextcloud/private/User/Session.php	2018-02-20 11:00:00.316796734 +0100
+*** /original/nextcloud/lib/private/User/Session.php	2018-02-20 11:00:00.316796734 +0100
 --- /modified/nextcloud/lib/private/User/Session.php	2018-02-20 12:00:00.828537353 +0100
 ***************
 *** 330,335 ****
