@@ -1,26 +1,28 @@
 <?php
-// db/authormapper.php
 
 namespace OCA\AmivCloudApp\Db;
 
 use OCP\IDBConnection;
-use OCP\AppFramework\Db\Mapper;
+use OCP\AppFramework\Db\QBMapper;
 
 /**
  * GroupShareMapper
  * 
  * Used to interact with the database for the GroupShare entity.
  */
-class GroupShareMapper extends Mapper {
+class GroupShareMapper extends QBMapper {
 
     public function __construct(IDBConnection $db) {
-        parent::__construct($db, 'amivcloudapp_group_share');
+        parent::__construct($db, 'amivcloudapp_group_share', GroupShare::class);
     }
 
-    public function delete(int $id){
-        $sql = 'DELETE FROM `' . $this->tableName . '` WHERE `id` = ?';
-        $stmt = $this->execute($sql, [$id]);
-        $stmt->closeCursor();
+    public function deleteById(int $id){
+        $qb = $this->db->getQueryBuilder();
+        $qb->delete($this->tableName)
+           ->where(
+             $qb->expr()->eq('id', $qb->createNamedParameter($id))
+           );
+        $qb->execute();
         return $id;
     }
 
@@ -29,9 +31,12 @@ class GroupShareMapper extends Mapper {
      * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
      */
     public function find($id) {
-        $sql = 'SELECT * FROM `*PREFIX*amivcloudapp_group_share` ' .
-            'WHERE `id` = ?';
-        return $this->findEntity($sql, [$id]);
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('m.id', 'm.gid', 'm.folder_id')
+	         ->from($this->tableName, 'm')
+	         ->where('m.id = :id')
+	         ->setParameter(':id', $id);
+        return $this->findEntity($qb);
     }
 
     /**
@@ -39,9 +44,12 @@ class GroupShareMapper extends Mapper {
      * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
      */
     public function findByFolderId($folderId) {
-      $sql = 'SELECT * FROM `*PREFIX*amivcloudapp_group_share` ' .
-            'WHERE `folder_id` = ?';
-        return $this->findEntity($sql, [$folderId]);
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('m.id', 'm.gid', 'm.folder_id')
+	         ->from($this->tableName, 'm')
+	         ->where('m.folder_id = :folder_id')
+	         ->setParameter(':folder_id', $folderId);
+        return $this->findEntity($qb);
     }
 
     /**
@@ -49,13 +57,29 @@ class GroupShareMapper extends Mapper {
      * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
      */
     public function findByGroupId($gid) {
-      $sql = 'SELECT * FROM `*PREFIX*amivcloudapp_group_share` ' .
-            'WHERE `gid` = ?';
-        return $this->findEntity($sql, [$gid]);
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('m.id', 'm.gid', 'm.folder_id')
+	         ->from($this->tableName, 'm')
+	         ->where('m.gid = :gid')
+	         ->setParameter(':gid', $gid);
+        return $this->findEntity($qb);
     }
 
     public function findAll($limit=null, $offset=null) {
-        $sql = 'SELECT * FROM `*PREFIX*amivcloudapp_group_share`';
-        return $this->findEntities($sql, $limit, $offset);
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('m.id', 'm.gid', 'm.folder_id')
+	         ->from($this->tableName, 'm')
+	         ->where('m.gid = :gid')
+           ->setParameter(':gid', $gid);
+
+        if ($limit !== null) {
+            $qb->setMaxResults($limit);
+        }
+
+        if ($offset !== null) {
+            $qb->setFirstResult($offset);
+        }
+
+        return $this->findEntity($qb);
     }
 }

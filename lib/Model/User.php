@@ -38,12 +38,27 @@ class User {
     /** @var string The user's display name */
     public $name;
 
+    /** @var bool Is user account active */
+    public $active;
+
+    /** @var bool Can user change its avatar */
+    public $avatar;
+
     public static function fromApiUserObject($apiUser) {
+      $config = \OC::$server->getConfig();
       $user = new User();
       $user->uid = $apiUser->_id;
       $user->email = $apiUser->email;
       $user->quota = '10 MB';
       $user->name = $apiUser->firstname .' ' .$apiUser->lastname;
+      $user->active = true;
+      $user->avatar = true;
+      $config->setUserValue(
+        $user->uid, 'files', 'quota', $user->quota
+      );
+      $config->setUserValue(
+        $user->uid, 'settings', 'email', $user->email
+      );
       return $user;
     }
 }

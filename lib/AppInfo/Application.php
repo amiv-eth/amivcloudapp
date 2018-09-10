@@ -68,6 +68,7 @@ class Application extends App {
             return new ApiSync(
                 $c->query('AppName'),
                 $this->appConfig,
+                $c->query(GroupShareMapper::class),
                 $c->query('ServerContainer')->getGroupManager(),
                 $c->query('ServerContainer')->getUserManager(),
                 $c->query('ServerContainer')->getShareManager(),
@@ -79,8 +80,7 @@ class Application extends App {
         $container->registerService(Cache::class, function($c) {
             return new Cache(
                 $c->query('AppName'),
-                $this->appConfig,
-                $c->query('ServerContainer')->getLogger();
+                $c->query('ServerContainer')->getLogger()
             );
         });
 
@@ -114,7 +114,6 @@ class Application extends App {
                 $c->query('ServerContainer')->getUserSession(),
                 $c->query('ServerContainer')->getLogger(),
                 $c->query(ApiSync::class)
-
             );
         });
 
@@ -129,8 +128,8 @@ class Application extends App {
         $session = $container->query('ServerContainer')->getSession();
 
         // Register user- and group backend
-        $userBackend = $this->getContainer()->query(UserBackend::class);
-        $groupBackend = $this->getContainer()->query(GroupBackend::class);
+        $userBackend = $container->query(UserBackend::class);
+        $groupBackend = $container->query(GroupBackend::class);
         \OC::$server->getUserManager()->registerBackend($userBackend);
         \OC::$server->getGroupManager()->addBackend($groupBackend);
 

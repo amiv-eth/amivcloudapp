@@ -25,6 +25,7 @@ namespace OCA\AmivCloudApp\Backend;
 use OCA\AmivCloudApp\Cache;
 use OCA\AmivCloudApp\Model\User;
 use OCA\AmivCloudApp\AppConfig;
+use OCA\AmivCloudApp\ApiUtil;
 use OCP\IConfig;
 use OCP\IL10N;
 use OCP\ILogger;
@@ -67,7 +68,7 @@ final class UserBackend extends ABackend implements
         $appName,
         AppConfig $config,
         Cache $cache,
-        ILogger $logger,
+        ILogger $logger
     ) {
         $this->appName = $appName;
         $this->config = $config;
@@ -76,7 +77,7 @@ final class UserBackend extends ABackend implements
     }
 
     public function hasUserListings() {
-        return false;
+        return true;
     }
 
     /**
@@ -168,16 +169,16 @@ final class UserBackend extends ABackend implements
      */
     public function checkPassword(string $loginName, string $password) {
         $this->logger->debug(
-            "Entering checkPassword($uid, *)", ['app' => $this->appName]
+            "Entering checkPassword($loginName, *)", ['app' => $this->appName]
         );
 
         // do basic input sanitation
-        $user = str_replace("\0", '', $user);
+        $loginName = str_replace("\0", '', $loginName);
         $password = str_replace("\0", '', $password);
 
         // authenticate user with AMIV API post request to /sessions
         $pass = rawurlencode($password);
-        list($httpcode, $response) = ApiUtil::post($this->config->getApiServerUrl(), 'sessions?embedded={"user":1}', 'username=' .$user .'&password=' .$pass);
+        list($httpcode, $response) = ApiUtil::post($this->config->getApiServerUrl(), 'sessions?embedded={"user":1}', 'username=' .$loginName .'&password=' .$pass);
 
         if ($httpcode === 201) {
           $user = User::fromApiUserObject($response->user);
@@ -220,8 +221,8 @@ final class UserBackend extends ABackend implements
         }
 
         $searchQuery = '{"$regex":"^(?i).*' .$search .'.*"}';
-        $query = 'where={"$or":{"nethz":' .$searchQuery .',"email":' .$searchQuery
-            .',"firstname":' .$searchQuery .',"lastname":' .$searchQuery .'}}';
+        $query = 'where={"$or":[{"nethz":' .$searchQuery .'},{"email":' .$searchQuery
+            .'},{"firstname":' .$searchQuery .'},{"lastname":' .$searchQuery .'}]}';
         
         if ($limit !== null) {
           $query .= '&max_results=' .$limit;
@@ -238,6 +239,8 @@ final class UserBackend extends ABackend implements
             return $users;
         }
 
+        $this->logger->warning('User1: ' .$response, ['app', $this->appName]);
+
         $this->logger->error(
           "UserBackend: getUsers($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
         );
@@ -249,7 +252,7 @@ final class UserBackend extends ABackend implements
         foreach ($response->_items as $apiUser) {
             $user = User::fromApiUserObject($apiUser);
             $this->addUserToCache($user);
-            $users[] = $user;
+            $users[] = $user->uid;
         }
 
         if ($recursive && isset($response->_links->next)) {

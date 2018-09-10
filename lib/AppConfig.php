@@ -27,24 +27,24 @@ use OCP\IConfig;
 use OCP\ILogger;
 
 /**
- * Application configutarion
+ * Application configuration
  *
  * @package OCA\AmivCloudApp
  */
 class AppConfig {
+    /**
+     * Config service
+     *
+     * @var OCP\IConfig
+     */
+    public $config;
+
     /**
      * Application name
      *
      * @var string
      */
     private $appName;
-
-    /**
-     * Config service
-     *
-     * @var OCP\IConfig
-     */
-    private $config;
 
     /**
      * Logger

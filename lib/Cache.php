@@ -25,7 +25,6 @@ use OC\Memcache\NullCache;
 use OCA\UserSQL\Constant\App;
 use OCA\UserSQL\Constant\Opt;
 use OCP\ICache;
-use OCP\IConfig;
 use OCP\ILogger;
 
 /**
@@ -45,21 +44,14 @@ class Cache
      * The default constructor. Initiates the cache memory.
      *
      * @param string  $AppName The application name.
-     * @param IConfig $config  The config instance.
      * @param ILogger $logger  The logger instance.
      */
-    public function __construct($AppName, IConfig $config, ILogger $logger)
+    public function __construct($AppName, ILogger $logger)
     {
         $factory = \OC::$server->getMemCacheFactory();
-        $useCache = $config->getAppValue(
-            $AppName, Opt::USE_CACHE, App::FALSE_VALUE
-        );
-
-        if ($useCache === App::FALSE_VALUE) {
-            $this->cache = new NullCache();
-        } elseif ($factory->isAvailable()) {
+        
+        if ($factory->isAvailable()) {
             $this->cache = $factory->createDistributed();
-            $logger->debug("Distributed cache initiated.", ["app" => $AppName]);
         } else {
             $logger->warning(
                 "There's no distributed cache available, fallback to null cache.",
@@ -67,6 +59,7 @@ class Cache
             );
             $this->cache = new NullCache();
         }
+        $this->clear();
     }
 
     /**

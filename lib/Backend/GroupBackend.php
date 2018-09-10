@@ -25,6 +25,7 @@ namespace OCA\AmivCloudApp\Backend;
 use OCA\AmivCloudApp\Cache;
 use OCA\AmivCloudApp\Model\Group;
 use OCA\AmivCloudApp\AppConfig;
+use OCA\AmivCloudApp\ApiUtil;
 use OCP\Group\Backend\ABackend;
 use OCP\Group\Backend\ICountUsersBackend;
 use OCP\Group\Backend\IGroupDetailsBackend;
@@ -77,8 +78,7 @@ final class GroupBackend extends ABackend implements
             return $groups;
         }
 
-        $searchQuery = ;
-        $query = 'where={name":{"$regex":"^(?i).*' .$search .'.*"}}';
+        $query = 'where={"name":{"$regex":"^(?i).*' .$search .'.*"}}';
         
         if ($limit !== null) {
           $query .= '&max_results=' .$limit;
@@ -94,6 +94,8 @@ final class GroupBackend extends ABackend implements
             $this->cache->set($cacheKey, $groups);
             return $groups;
         }
+
+        $this->logger->warning('Group1: ' .var_export($response, true), ['app', $this->appName]);
 
         $this->logger->error(
           "GroupBackend: getGroups($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
@@ -140,7 +142,7 @@ final class GroupBackend extends ABackend implements
         // TODO: use search term in API request. (This is not trivial as MongoDB is not a relational database!)
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groupmemberships?' .$query, $this->config->getApiKey());
-        if ($httpcode !== 200) {
+        if ($httpcode === 200) {
             $count = (int) $response->_meta->total;
             $this->cache->set($cacheKey, $count, 60);
             return $count;
@@ -173,11 +175,7 @@ final class GroupBackend extends ABackend implements
             return $gids;
         }
 
-        $query = 'where={"user":"' .$uid .'"}';
-
-        if ($limit !== null) {
-          $query .= '&max_results=' .$limit;
-        }
+        $query = 'where={"user":"' .$uid .'"}&max_results=100';
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groupmemberships?' .$query, $this->config->getApiKey());
         if ($httpcode !== 200) {
@@ -185,7 +183,7 @@ final class GroupBackend extends ABackend implements
         }
 
         $gids = $this->parseGroupsFromGroupMembershipListResponse($response, true);
-        $this->cache->set($cacheKey, $gids);
+        $this->cache->set($cacheKey, $gids, 60);
         return $gids;
     }
 
@@ -294,16 +292,16 @@ final class GroupBackend extends ABackend implements
     }
 
     private function addGroupToCache($group) {
-        $cacheKey = self::class . 'group_' . $group->uid;
+        $cacheKey = self::class . 'group_' . $group->gid;
         $this->cache->set($cacheKey, $group);
     }
 
     private function parseGroupListResponse($response, $recursive) {
         $groups = [];
         foreach ($response->_items as $apiGroup) {
-            $group = Group::fromApiGroupObject($apiGroup);
+            $group = Group::fromApiGroupObject($apiGroup, $this->config);
             $this->addGroupToCache($group);
-            $groups[] = $group;
+            $groups[] = $group->gid;
         }
 
         if ($recursive && isset($response->_links->next)) {
@@ -326,7 +324,7 @@ final class GroupBackend extends ABackend implements
         if ($recursive && isset($response->_links->next)) {
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
-                $gids = array_merge($uids, $this->parseUsersFromGroupMembershipListResponse($response2));
+                $gids = array_merge($gids, $this->parseGroupsFromGroupMembershipListResponse($response2));
             }
         }
 

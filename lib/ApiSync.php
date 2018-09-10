@@ -51,9 +51,6 @@ class ApiSync {
     /** @var ILogger */
     private $logger;
 
-    /** @var string */
-    private $token;
-
     public function __construct(string $appName,
                                 AppConfig $config,
                                 GroupShareMapper $groupShareMapper,
@@ -78,11 +75,12 @@ class ApiSync {
     public function syncShares() {
         $addedShares = [];
 
-        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groups?where={"requires_storage":true}', $this->getToken());
-        if ($httpcode != 200) {
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groups?where={"requires_storage":true}', $this->config->getApiKey());
+        if ($httpcode === 200) {
             $groups = $this->parseGroupListResponse($response, true);
             foreach($groups as $group) {
-                $this->createOrUpdateGroupShare($group);
+                $this->logger->debug('ApiSync-1: Create or update Group share for ' . $group->name, ['app' => $this->appName]);
+                $this->createOrUpdateGroupFolder($group);
                 $addedShares[] = $group->_id;
             }
 
@@ -90,11 +88,11 @@ class ApiSync {
             $linkedGroupFolders = $this->groupShareMapper->findAll();
             foreach ($linkedGroupFolders as $linkedGroupFolder) {
                 if (!in_array($linkedGroupFolder['gid'], $addedShares)) {
-                    $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($linkedGroupFolder['folder_id']);
+                    $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($linkedGroupFolder->getFolderId());
                     if ($folder !== null) {
                         $this->removeSharesFromFolder($folder);
                     } else {
-                        $this->groupShareMapper->delete($linkedGroupFolder['id']);
+                        $this->groupShareMapper->deleteById($linkedGroupFolder['id']);
                     }
                 }
             }
@@ -109,35 +107,62 @@ class ApiSync {
     private function createOrUpdateGroupFolder($group) {
         $folder = null;
         $groupShareMapping = null;
+        $isNewMapping = true;
         $share = null;
 
+        $userFolder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount());
+
         try {
-            $groupShareMapping = $this->groupShareMapper->findByGroupId($group->_id);
-            $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($groupShareMapping['folder_id']);
-        } catch (Exception $e) {
+            $groupShareMapping = $this->groupShareMapper->findByGroupId($group->_id);\
+            $folders = $userFolder->getById($groupShareMapping->getFolderId());
+            if(!empty($folders)) {
+                $folder = $folders[0];
+            }
+            $isNewMapping = false;
+        } catch (\Exception $e) {
             // ignored.
         }
 
         if ($folder === null) {
             // create folder in admin account if it does not exist
-            if (!$this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->nodeExists($group->name)) {
-                $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->newFolder($group->name);
+            if (!$userFolder->nodeExists($group->name)) {
+                $folder = $userFolder->newFolder($group->name);
             } else {
-                $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->get($group->name);
+                $folder = $userFolder->get($group->name);
+
+                // Check if there is already a mapping for this folder
+                try {
+                    $existingGroupShareMapping = $this->groupShareMapper->findByFolderId($folder->getId());
+                    // There exists already a mapping for this folder to another group -> create a new unique folder
+                    $folder = $userFolder->newFolder($userFolder->getNonExistingName($group->name));
+                } catch (\Exception $e) {
+                    // ignored.
+                }
+            }
+
+            if ($isNewMapping) {
+                $groupShareMapping = new GroupShare();
+                $groupShareMapping->setGid($group->_id);
+                $groupShareMapping->setFolderId($folder->getId());
+                $this->groupShareMapper->insert($groupShareMapping);
+            } else {
+                $groupShareMapping->setFolderId($folder->getId());
+                $this->groupShareMapper->update($groupShareMapping);
             }
         } else {
             if ($folder->getName() !== $group->name) {
                 // Change name of the group folder
                 $path = $folder->getPath();
-                $folder->move(substr($path, 0, strrpos( $path, '/')) .$group->name);
+                $newPath = substr($path, 0, strrpos( $path, '/')) .'/' .$group->name;
+                $folder->move($newPath);
             }
-            $shares = $this->shareManager->getSharesBy($this->config->getFileOwnerAccount(), \OCP\Share::SHARE_TYPE_GROUP, $folder);
-            if (count($shares) > 0) {
-                foreach ($shares as $share) {
-                    if ($share->getSharedWith() == $group->_id) {
-                        $share = $share;
-                        break;
-                    }
+        }
+
+        $shares = $this->shareManager->getSharesBy($this->config->getFileOwnerAccount(), \OCP\Share::SHARE_TYPE_GROUP, $folder);
+        if (count($shares) > 0) {
+            foreach ($shares as $shareItem) {
+                if ($shareItem->getSharedWith() == $group->_id) {
+                    $share = $shareItem;
                 }
             }
         }
