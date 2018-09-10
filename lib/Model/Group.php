@@ -20,31 +20,27 @@
  *
  */
 
+namespace OCA\AmivCloudApp\Model;
 
-namespace OCA\AmivCloudApp\BackgroundJob;
+/**
+ * Group class
+ */
+class Group
+{
+    /** @var string The GID */
+    public $gid;
 
-use OCA\AmivCloudApp\ApiSync;
-use OC\BackgroundJob\TimedJob;
+    /** @var string The group's display name */
+    public $name;
 
+    /** @var bool Whether it is an admin group */
+    public $admin;
 
-class ApiSyncTask extends TimedJob {
-
-    /** @var ApiSync */
-    protected $apiSync;
-
-		/**
-		 * @param string $appName
-		 * @param ApiSync $apiSync
-		 * @param ILogger $logger
-		 */
-		public function __construct(ApiSync $apiSync) {
-				$this->apiSync = $apiSync;
-
-				// Run every 15 minutes
-				$this->setInterval(60*15);
-		}
-
-    protected function run($argument) {
-        $this->apiSync->syncShares();
+    public static function fromApiGroupObject($apiGroup, $config) {
+      $group = new Group();
+      $group->gid = $apiGroup->_id;
+      $group->name = $apiGroup->name;
+      $group->isAdmin = in_array($group->name, $config->getApiAdminGroups());
+      return $group;
     }
 }

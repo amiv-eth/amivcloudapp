@@ -26,12 +26,14 @@ namespace OCA\AmivCloudApp\AppInfo;
 use OCP\AppFramework\App;
 use OCP\Share\IManager;
 use OCP\Util;
-use OCA\AmivCloudApp\Hooks\UserHooks;
 use OCA\AmivCloudApp\AppConfig;
 use OCA\AmivCloudApp\ApiSync;
-use OCA\AmivCloudApp\Controller\LoginController;
-use OCA\AmivCloudApp\Controller\SettingsController;
+use OCA\AmivCloudApp\Cache;
+use OCA\AmivCloudApp\Db\GroupShareMapper;
 use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
+use OCA\AmivCloudApp\Controller\LoginController;
+use OCA\AmivCloudApp\Backend\UserBackend;
+use OCA\AmivCloudApp\Backend\GroupBackend;
 
 class Application extends App {
 
@@ -56,7 +58,13 @@ class Application extends App {
 
         $container = $this->getContainer();
 
-        $container->registerService('ApiSync', function($c) {
+        $container->registerService(GroupShareMapper::class, function($c) {
+            return new GroupShareMapper(
+                $c->query('DatabaseConnection')
+            );
+        });
+
+        $container->registerService(ApiSync::class, function($c) {
             return new ApiSync(
                 $c->query('AppName'),
                 $this->appConfig,
@@ -67,24 +75,35 @@ class Application extends App {
                 $c->query('ServerContainer')->getLogger()
             );
         });
-        $container->registerService('UserHooks', function($c) {
-            return new UserHooks(
+
+        $container->registerService(Cache::class, function($c) {
+            return new Cache(
                 $c->query('AppName'),
                 $this->appConfig,
-                $c->query('ServerContainer')->getSession(),
-                $c->query('ServerContainer')->getGroupManager(),
-                $c->query('ServerContainer')->getUserManager(),
-                $c->query('ServerContainer')->getUserSession(),
-                $c->query('ServerContainer')->getShareManager(),
-                $c->query('ServerContainer')->getURLGenerator(),
-                $c->query('ServerContainer')->getRootFolder(),
-                $c->query('ServerContainer')->getLogger(),
-                $c->query('ApiSync')
+                $c->query('ServerContainer')->getLogger();
+            );
+        });
+
+        $container->registerService(UserBackend::class, function($c) {
+            return new UserBackend(
+                $c->query('AppName'),
+                $this->appConfig,
+                $c->query(Cache::class),
+                $c->query('ServerContainer')->getLogger()
+            );
+        });
+
+        $container->registerService(GroupBackend::class, function($c) {
+            return new GroupBackend(
+                $c->query('AppName'),
+                $this->appConfig,
+                $c->query(Cache::class),
+                $c->query('ServerContainer')->getLogger()
             );
         });
 
         // Controllers
-        $container->registerService('LoginController', function($c) {
+        $container->registerService(LoginController::class, function($c) {
             return new LoginController(
                 $c->query('AppName'),
                 $c->query('Request'),
@@ -94,13 +113,14 @@ class Application extends App {
                 $c->query('ServerContainer')->getUserManager(),
                 $c->query('ServerContainer')->getUserSession(),
                 $c->query('ServerContainer')->getLogger(),
-                $c->query('ApiSync')
+                $c->query(ApiSync::class)
+
             );
         });
 
         // BackgroundJobs
-        $container->registerService('OCA\AmivCloudApp\BackgroundJob\ApiSyncTask', function($c) {
-            return new ApiSyncTask($c->query('ApiSync'));
+        $container->registerService(ApiSyncTask::class, function($c) {
+            return new ApiSyncTask($c->query(ApiSync::class));
         });
     }
 
@@ -108,8 +128,11 @@ class Application extends App {
         $container = $this->getContainer();
         $session = $container->query('ServerContainer')->getSession();
 
-        // register user hooks
-        $container->query('UserHooks')->register();
+        // Register user- and group backend
+        $userBackend = $this->getContainer()->query(UserBackend::class);
+        $groupBackend = $this->getContainer()->query(GroupBackend::class);
+        \OC::$server->getUserManager()->registerBackend($userBackend);
+        \OC::$server->getGroupManager()->addBackend($groupBackend);
 
         if (!$session->exists('amiv.oauth_state')) {
             $state = bin2hex(random_bytes(32));

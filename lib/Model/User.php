@@ -20,31 +20,30 @@
  *
  */
 
+namespace OCA\AmivCloudApp\Model;
 
-namespace OCA\AmivCloudApp\BackgroundJob;
+/**
+ * User class
+ */
+class User {
+    /** @var string The UID (username) */
+    public $uid;
 
-use OCA\AmivCloudApp\ApiSync;
-use OC\BackgroundJob\TimedJob;
+    /** @var string The user's email address */
+    public $email;
 
+    /** @var string The user quota */
+    public $quota;
 
-class ApiSyncTask extends TimedJob {
+    /** @var string The user's display name */
+    public $name;
 
-    /** @var ApiSync */
-    protected $apiSync;
-
-		/**
-		 * @param string $appName
-		 * @param ApiSync $apiSync
-		 * @param ILogger $logger
-		 */
-		public function __construct(ApiSync $apiSync) {
-				$this->apiSync = $apiSync;
-
-				// Run every 15 minutes
-				$this->setInterval(60*15);
-		}
-
-    protected function run($argument) {
-        $this->apiSync->syncShares();
+    public static function fromApiUserObject($apiUser) {
+      $user = new User();
+      $user->uid = $apiUser->_id;
+      $user->email = $apiUser->email;
+      $user->quota = '10 MB';
+      $user->name = $apiUser->firstname .' ' .$apiUser->lastname;
+      return $user;
     }
 }
