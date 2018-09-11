@@ -2,15 +2,7 @@
 
 ## Setup
 
-* Place this app in **nextcloud/apps/**
-* Open terminal and change to the root directory of your nextcloud installation (named ```nextcloud``` by default)
-* Apply patch file
-
-```bash
-    $ patch -p3 < nextcloud-\<version\>.patch
-```
-
-  where you have to replace *\<version\>* with your Nextcloud version number (if available in this repository!)
+* Place this app in **nextcloud/custom_apps/**
 * Add the following keys to the system configuration `config/config.php`
 
 ```php
@@ -25,8 +17,8 @@
 
 The provided API key needs `read` permissions for `users`, `groups` and `groupmemberships`.
 
-Please note that the patch file for Nextcloud version 11 does also apply for version 10!
-
 ## Prepare for new Nextcloud version
 
-Check the latest patch file and create a new version based on the previous one for the latest version of Nextcloud. Increase the max Nextcloud version in `appinfo/info.xml`. Verify the apps functionality in a test environment. If everything is working, deploy it to the production environment. Please make sure that you enable the maintenance mode first in Nextcloud before you continue the deploy of the new app version.
+Increase the max Nextcloud version in `appinfo/info.xml`. Verify the apps functionality in a test environment. If everything is working, deploy it to the production environment. Please make sure that you enable the maintenance mode first in Nextcloud before you continue the deploy of the new app version.
+
+** Do a backup beforehand!**
