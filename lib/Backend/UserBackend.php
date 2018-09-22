@@ -77,7 +77,7 @@ final class UserBackend extends ABackend implements
     }
 
     public function hasUserListings() {
-        return true;
+        return false;
     }
 
     /**
@@ -206,7 +206,7 @@ final class UserBackend extends ABackend implements
 
         $names = [];
         foreach ($users as $user) {
-            $names[$user->uid] = $user->name;
+            $names[$user] = $this->getDisplayName($user);
         }
 
         return $names;
@@ -214,10 +214,10 @@ final class UserBackend extends ABackend implements
 
     public function getUsers($search = '', $limit = null, $offset = 0): array {
         $cacheKey = self::class . 'users_' . $search . '_' . $limit . '_' . $offset;
-        $users = $this->cache->get($cacheKey);
+        $cachedUsers = $this->cache->get($cacheKey);
 
-        if ($users !== null) {
-            return $users;
+        if ($cachedUsers !== null) {
+            return $cachedUsers;
         }
 
         $searchQuery = '{"$regex":"^(?i).*' .$search .'.*"}';

@@ -95,39 +95,10 @@ final class GroupBackend extends ABackend implements
             return $groups;
         }
 
-        $this->logger->warning('Group1: ' .var_export($response, true), ['app', $this->appName]);
-
         $this->logger->error(
           "GroupBackend: getGroups($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
         );
         return [];
-
-        $groups = $this->groupRepository->findAllBySearchTerm(
-            '%' . $search . '%', $limit, $offset
-        );
-
-        if ($groups === false) {
-            return [];
-        }
-
-        foreach ($groups as $group) {
-            $this->cache->set("group_" . $group->gid, $group);
-        }
-
-        $groups = array_map(
-            function ($group) {
-                return $group->gid;
-            }, $groups
-        );
-
-        $this->cache->set($cacheKey, $groups);
-        $this->logger->debug(
-            "Returning getGroups($search, $limit, $offset): count(" . count(
-                $groups
-            ) . ")", ["app" => $this->appName]
-        );
-
-        return $groups;
     }
 
     public function countUsersInGroup(string $gid, string $search = ''): int {

@@ -34,6 +34,7 @@ use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
 use OCA\AmivCloudApp\Controller\LoginController;
 use OCA\AmivCloudApp\Backend\UserBackend;
 use OCA\AmivCloudApp\Backend\GroupBackend;
+use OCA\AmivCloudApp\Backend\MemberGroupBackend;
 
 class Application extends App {
 
@@ -102,6 +103,15 @@ class Application extends App {
             );
         });
 
+        $container->registerService(MemberGroupBackend::class, function($c) {
+            return new MemberGroupBackend(
+                $c->query('AppName'),
+                $this->appConfig,
+                $c->query(Cache::class),
+                $c->query('ServerContainer')->getLogger()
+            );
+        });
+
         // Controllers
         $container->registerService(LoginController::class, function($c) {
             return new LoginController(
@@ -130,8 +140,10 @@ class Application extends App {
         // Register user- and group backend
         $userBackend = $container->query(UserBackend::class);
         $groupBackend = $container->query(GroupBackend::class);
+        $memberGroupBackend = $container->query(MemberGroupBackend::class);
         \OC::$server->getUserManager()->registerBackend($userBackend);
         \OC::$server->getGroupManager()->addBackend($groupBackend);
+        \OC::$server->getGroupManager()->addBackend($memberGroupBackend);
 
         if (!$session->exists('amiv.oauth_state')) {
             $state = bin2hex(random_bytes(32));

@@ -36,6 +36,14 @@ class Group
     /** @var bool Whether it is an admin group */
     public $admin;
 
+    public static function fromMembership($membership, $groupName) {
+      $group = new Group();
+      $group->gid = $membership;
+      $group->name = $groupName;
+      $group->isAdmin = false;
+      return $group;
+    }
+
     public static function fromApiGroupObject($apiGroup, $config) {
       $group = new Group();
       $group->gid = $apiGroup->_id;
