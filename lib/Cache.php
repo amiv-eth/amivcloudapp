@@ -59,7 +59,6 @@ class Cache
             );
             $this->cache = new NullCache();
         }
-        $this->clear();
     }
 
     /**
