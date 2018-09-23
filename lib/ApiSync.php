@@ -24,6 +24,8 @@
 namespace OCA\AmivCloudApp;
 
 use OCA\AmivCloudApp\ApiUtil;
+use OCA\AmivCloudApp\Db\GroupShare;
+use OCA\AmivCloudApp\Db\GroupShareMapper;
 use OCP\Files\IRootFolder;
 use OCP\Util;
 use OCP\IGroupManager;
@@ -36,187 +38,141 @@ class ApiSync {
     private $appName;
     /** @var AppConfig */
     private $config;
+    /** @var GroupShareMapper */
+    private $groupShareMapper;
     /** @var IUserManager */
     private $userManager;
     /** @var IGroupManager */
     private $groupManager;
-    /** @var \OCP\Share\Manager */
+    /** @var \OCP\Share\IManager */
     private $shareManager;
     /** @var IRootFolder */
     private $rootFolder;
     /** @var ILogger */
     private $logger;
 
-    /** @var string */
-    private $token;
-
     public function __construct(string $appName,
                                 AppConfig $config,
+                                GroupShareMapper $groupShareMapper,
                                 IGroupManager $groupManager,
                                 IUserManager $userManager,
                                 \OCP\Share\IManager $shareManager,
                                 IRootFolder $rootFolder,
                                 ILogger $logger) {
-      
+        $this->appName = $appName;
         $this->config = $config;
+        $this->groupShareMapper = $groupShareMapper;
         $this->groupManager = $groupManager;
         $this->userManager = $userManager;
         $this->shareManager = $shareManager;
         $this->rootFolder = $rootFolder;
         $this->logger = $logger;
-  }
-
-    public function setToken($token) {
-        $this->token = $token;
-    }
-
-    public function getToken() {
-        if (count($this->token) > 0) {
-            return $this->token;
-        }
-        return $this->config->getApiKey();
     }
 
     /**
-     * Get api user id from nextcloud user object.
+     * Sync group shares
      */
-    public function getApiUserFromUsername($username) {
-        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$username, $this->getToken());
+    public function syncShares() {
+        $addedShares = [];
+
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groups?where={"requires_storage":true}', $this->config->getApiKey());
         if ($httpcode === 200) {
-            return $response;
-        }
-        throw new NotFoundException('User "' .$username .'" not found!');
-    }
-
-    /**
-     * Sync group memberships of all nextcloud users
-     */
-    public function syncAllUsers() {
-        $nextcloudUsers = $this->userManager->search('');
-        foreach ($nextcloudUsers as $nextcloudUser) {
-            try {
-                $apiUser = $this->getApiUserFromUsername($nextcloudUser->getUID());
-                $this->syncUser($nextcloudUser, $apiUser);
-            } catch (NotFoundException $e) {
-            $this->logger->info('Could not find user "' .$nextcloudUser->getUID() .'" in api.', ['app' => 'AmivCloudApp']);
+            $groups = $this->parseGroupListResponse($response, true);
+            foreach($groups as $group) {
+                $this->logger->debug('ApiSync-1: Create or update Group share for ' . $group->name, ['app' => $this->appName]);
+                $this->createOrUpdateGroupFolder($group);
+                $addedShares[] = $group->_id;
             }
-        }
-    }
 
-    /**
-     * Create a new user in nextcloud linked to the given API user
-     */
-    public function createUser($apiUser) {
-        $password = substr(base64_encode(random_bytes(64)), 0, 30);
-        $nextcloudUser = $this->userManager->createUser($apiUser->_id, $password);
-        $this->logger->info('User "' . $nextcloudUser->getUID() .'" successfully created', ['app' => $this->appName]);
-        return $nextcloudUser;
-    }
-
-    /**
-     * Sync group memberships of the given nextcloud user
-     * 
-     * @param object $nextcloudUser
-     * @param string $apiUser
-     */
-    public function syncUser($nextcloudUser, $apiUser) {
-        // sync user information
-        $nextcloudUser->setDisplayName($apiUser->firstname .' ' .$apiUser->lastname);
-        $nextcloudUser->setEmailAddress($apiUser->email);
-        $nextcloudUser->setQuota('10 MB');
-
-        // retrieve list of nextcloud groups for this user
-        $nextcloudGroups = $this->groupManager->getUserGroups($nextcloudUser);
-
-        // retrieve list of the users groups from AMIV API
-        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groupmemberships?where={"user":"' .$apiUser->_id .'"}&embedded={"group":1}', $this->getToken());
-        if ($httpcode != 200) {
-            throw new \Exception('Could not load group memberships for user "' .$nextcloudUser->getUID() .'"');
-        }
-        $apiGroups = $response->_items;
-        $adminGroups = $this->config->getApiAdminGroups();
-
-        // add AMIV API groups to Nextcloud & create share & add user
-        foreach ($apiGroups as $item) {
-            $group = $item->group;
-            if ($group->requires_storage) {
-                $this->addUserToGroup($group->name, $nextcloudUser);
-                $this->createSharedFolder($group->name);
-            }
-            if (in_array($group->name, $adminGroups) &&
-                !$this->groupManager->isInGroup($nextcloudUser->getUID(), 'admin')) {
-                    $this->groupManager->get('admin')->addUser($nextcloudUser);
-            }
-        }
-
-        // remove user from groups he is not member of anymore
-        foreach ($nextcloudGroups as $nextcloudGroup) {
-            $valid = false;
-            foreach ($apiGroups as $item) {
-                if ($nextcloudGroup->getGID() == $item->group->name && $item->group->requires_storage) {
-                    $valid = true;
-                }
-                if (in_array($item->group->name, $adminGroups) &&
-                    $nextcloudGroup->getGID() === 'admin') {
-                        $valid = true;
+            // Remove all linked folders not containing
+            $linkedGroupFolders = $this->groupShareMapper->findAll();
+            foreach ($linkedGroupFolders as $linkedGroupFolder) {
+                if (!in_array($linkedGroupFolder['gid'], $addedShares)) {
+                    $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($linkedGroupFolder->getFolderId());
+                    if ($folder !== null) {
+                        $this->removeSharesFromFolder($folder);
+                    } else {
+                        $this->groupShareMapper->deleteById($linkedGroupFolder['id']);
+                    }
                 }
             }
-            if (!$valid) {
-                $nextcloudGroup->removeUser($nextcloudUser);
-            }
-        }
-
-        // add member to the internal group
-        if ($apiUser->membership != 'none') {
-            $this->addUserToGroup($this->config->getInternalGroup(), $nextcloudUser);
-        }
-    }
-
-    /** adds the given nextcloud user to the group with the given name */
-    private function addUserToGroup($groupName, $nextCloudUser) {
-        // create group if not yet in nextcloud
-        $groupCreated = false;
-        if (!$this->groupManager->groupExists($groupName)) {
-            $this->groupManager->createGroup($groupName);
-            $groupCreated = true;
-        }
-        
-        // add nextcloud user to nextcloud group if not already member
-        if (!$this->groupManager->isInGroup($nextCloudUser->getDisplayName(), $groupName)) {
-            $this->groupManager->get($groupName)->addUser($nextCloudUser);
-        }
-    }
-
-    /**
-     * createSharedFolder
-     *
-     * Helper function to create a group share in nextcloud. We want the groups files to
-     * be owned by the administrator account, so they do not get deleted upon user deletion.
-     * 
-     * 1. check if the folder exsits in the admin account. If not create it.
-     * 2. share the administrators folder with the given group
-     *
-     * users in the group have full read/write permissions, but they are not allowed to re-share it
-     * 
-     * @param string $groupId
-     */
-    private function createSharedFolder($groupId) {
-        // create folder in admin account if it does not exist
-        if (!$this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->nodeExists($groupId)) {
-            $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->newFolder($groupId);
         } else {
-            $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->get($groupId);
+            $this->logger->error('ApiSync-12: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+        }
+    }
+
+    /**
+     * Create or update a group share for the given group.
+     */
+    private function createOrUpdateGroupFolder($group) {
+        $folder = null;
+        $groupShareMapping = null;
+        $isNewMapping = true;
+        $share = null;
+
+        $userFolder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount());
+
+        try {
+            $groupShareMapping = $this->groupShareMapper->findByGroupId($group->_id);\
+            $folders = $userFolder->getById($groupShareMapping->getFolderId());
+            if(!empty($folders)) {
+                $folder = $folders[0];
+            }
+            $isNewMapping = false;
+        } catch (\Exception $e) {
+            // ignored.
         }
 
-        // Check if share already exists
+        if ($folder === null) {
+            // create folder in admin account if it does not exist
+            if (!$userFolder->nodeExists($group->name)) {
+                $folder = $userFolder->newFolder($group->name);
+            } else {
+                $folder = $userFolder->get($group->name);
+
+                // Check if there is already a mapping for this folder
+                try {
+                    $existingGroupShareMapping = $this->groupShareMapper->findByFolderId($folder->getId());
+                    // There exists already a mapping for this folder to another group -> create a new unique folder
+                    $folder = $userFolder->newFolder($userFolder->getNonExistingName($group->name));
+                } catch (\Exception $e) {
+                    // ignored.
+                }
+            }
+
+            if ($isNewMapping) {
+                $groupShareMapping = new GroupShare();
+                $groupShareMapping->setGid($group->_id);
+                $groupShareMapping->setFolderId($folder->getId());
+                $this->groupShareMapper->insert($groupShareMapping);
+            } else {
+                $groupShareMapping->setFolderId($folder->getId());
+                $this->groupShareMapper->update($groupShareMapping);
+            }
+        } else {
+            if ($folder->getName() !== $group->name) {
+                // Change name of the group folder
+                $path = $folder->getPath();
+                $newPath = substr($path, 0, strrpos( $path, '/')) .'/' .$group->name;
+                $folder->move($newPath);
+            }
+        }
+
         $shares = $this->shareManager->getSharesBy($this->config->getFileOwnerAccount(), \OCP\Share::SHARE_TYPE_GROUP, $folder);
         if (count($shares) > 0) {
-            foreach ($shares as $share) {
-                if ($share->getSharedWith() == $groupId) {
-                    return;
+            foreach ($shares as $shareItem) {
+                if ($shareItem->getSharedWith() == $group->_id) {
+                    $share = $shareItem;
                 }
             }
         }
+
+        if ($share === null) {
+            $this->createGroupFolderShare($folder, $group->_id);
+        }
+    }
+
+    private function createGroupFolderShare($folder, $groupId) {
         // share said folder with the given groupId
         $share = $this->shareManager->newShare();
         $share->setNode($folder);
@@ -227,6 +183,31 @@ class ApiSync {
         $share->setPermissions(\OCP\Constants::PERMISSION_READ | \OCP\Constants::PERMISSION_CREATE | \OCP\Constants::PERMISSION_UPDATE | \OCP\Constants::PERMISSION_DELETE | \OCP\Constants::PERMISSION_SHARE);
         // actually create the share and log
         $this->shareManager->createShare($share);
-        $this->logger->info('Shared folder "' .$groupId .'" created', ['app' => 'AmivCloudApp']);
+        $this->logger->info('ApiSync-11: Shared folder "' .$folder->getName() .'" created', ['app' => $this->appName]);
+    }
+
+    private function removeSharesFromFolder($folder) {
+        // Remove group shares
+        $shares = $this->shareManager->getSharesBy($this->config->getFileOwnerAccount(), \OCP\Share::SHARE_TYPE_GROUP, $folder);
+        if (count($shares) > 0) {
+            foreach ($shares as $share) {
+                $this->shareManager->deleteShare($share);
+            }
+        }
+    }
+
+    private function parseGroupListResponse($response, $recursive) {
+        $groups = $response->_items;
+
+        if ($recursive && isset($response->_links->next)) {
+            list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
+            if ($httpcode === 200) {
+                $groups = array_merge($groups, $this->parseGroupListResponse($response2));
+            } else {
+                $this->logger->error('ApiSync-13: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+            }
+        }
+
+        return $groups;
     }
 }

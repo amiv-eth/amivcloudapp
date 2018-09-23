@@ -16,7 +16,7 @@
     <category>auth</category>
     <website>https://amiv.ethz.ch</website>
     <dependencies>
-        <nextcloud min-version="10" max-version="13"/>
+        <nextcloud min-version="14" max-version="14"/>
     </dependencies>
     <background-jobs>
         <job>OCA\AmivCloudApp\BackgroundJob\ApiSyncTask</job>

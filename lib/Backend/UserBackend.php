@@ -1,0 +1,290 @@
+<?php
+/**
+ * @copyright Copyright (c) 2018, AMIV an der ETH
+ *
+ * @author Sandro Lutz <code@temparus.ch>
+ *
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
+
+namespace OCA\AmivCloudApp\Backend;
+
+use OCA\AmivCloudApp\Cache;
+use OCA\AmivCloudApp\Model\User;
+use OCA\AmivCloudApp\AppConfig;
+use OCA\AmivCloudApp\ApiUtil;
+use OCP\IConfig;
+use OCP\IL10N;
+use OCP\ILogger;
+use OCP\User\Backend\ABackend;
+use OCP\User\Backend\ICheckPasswordBackend;
+use OCP\User\Backend\ICountUsersBackend;
+use OCP\User\Backend\IGetDisplayNameBackend;
+use OCP\User\Backend\IProvideAvatarBackend;
+
+/**
+ * The AMIV API user backend manager.
+ */
+final class UserBackend extends ABackend implements
+    ICheckPasswordBackend,
+    ICountUsersBackend,
+    IGetDisplayNameBackend,
+    IProvideAvatarBackend
+{
+    /** @var string */
+    private $appName;
+
+    /** @var ILogger */
+    private $logger;
+
+    /** @var Cache */
+    private $cache;
+
+    /** @var AppConfig */
+    private $config;
+
+    /**
+     * The default constructor
+     *
+     * @param string $appName
+     * @param AppConfig $config
+     * @param Cache $cache
+     * @param ILogger $logger
+     */
+    public function __construct(
+        $appName,
+        AppConfig $config,
+        Cache $cache,
+        ILogger $logger
+    ) {
+        $this->appName = $appName;
+        $this->config = $config;
+        $this->cache = $cache;
+        $this->logger = $logger;
+    }
+
+    public function hasUserListings() {
+        return false;
+    }
+
+    /**
+     * Count users in the database.
+     *
+     * @return int The number of users.
+     */
+    public function countUsers(): int {
+        $cacheKey = self::class . 'users#';
+        $count = $this->cache->get($cacheKey);
+
+        if ($count !== null) {
+            return $count;
+        }
+
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users', $this->config->getApiKey());
+        if ($httpcode === 200) {
+            $count = (int) $response->_meta->total;
+            $this->cache->set($cacheKey, $count);
+            return $count;
+        }
+
+        $this->logger->error(
+          'UserBackend: countUsers() with API response code ' .$httpcode, ['app' => $this->appName]
+        );
+        return 0;
+    }
+
+    public function userExists($uid) {
+        $user = $this->getUser($uid);
+        return $user !== false && $user !== null;
+    }
+
+    /**
+     * Get a user entity object. If it's found value from cache is used.
+     *
+     * @param string $uid The user ID.
+     *
+     * @return User The user entity, null if it does not exists or
+     *              FALSE on failure.
+     */
+    private function getUser($uid) {
+        $cacheKey = self::class . 'user_' . $uid;
+        $cachedUser = $this->cache->get($cacheKey);
+
+        if ($cachedUser !== null) {
+            if ($cachedUser === false) {
+              return false;
+            }
+
+            $user = new User();
+            foreach ($cachedUser as $key => $value) {
+                $user->{$key} = $value;
+            }
+            return $user;
+        }
+
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$uid, $this->config->getApiKey());
+        if ($httpcode === 200) {
+          $user = User::fromApiUserObject($response);
+          $this->cache->set($cacheKey, $user);
+          return $user;
+        }
+        if ($httpcode === 404) {
+          $this->cache->set($cacheKey, false);
+          return false;
+        }
+        return null;
+    }
+
+    public function getDisplayName($uid): string {
+        $user = $this->getUser($uid);
+
+        if (!($user instanceof User)) {
+            return false;
+        }
+
+        return $user->name;
+    }
+
+    /**
+     * Check if the user's password is correct then return its ID or
+     * FALSE on failure.
+     *
+     * @param string $loginName
+     * @param string $password
+     *
+     * @return string|bool The user ID on success; false otherwise
+     */
+    public function checkPassword(string $loginName, string $password) {
+        $this->logger->debug(
+            "Entering checkPassword($loginName, *)", ['app' => $this->appName]
+        );
+
+        // do basic input sanitation
+        $loginName = str_replace("\0", '', $loginName);
+        $password = str_replace("\0", '', $password);
+
+        // authenticate user with AMIV API post request to /sessions
+        $pass = rawurlencode($password);
+        list($httpcode, $response) = ApiUtil::post($this->config->getApiServerUrl(), 'sessions?embedded={"user":1}', 'username=' .$loginName .'&password=' .$pass);
+
+        if ($httpcode === 201) {
+          $user = User::fromApiUserObject($response->user);
+          $this->addUserToCache($user);
+
+          ApiUtil::delete($this->config->getApiServerUrl(), 'sessions/' .$response->_id ,$response->_etag, $response->token);
+
+          $this->logger->info(
+            'Successful authentication of user ' .$loginName,
+            ['app' => $this->appName]
+          );
+
+          return $user->uid;
+        }
+
+        $this->logger->info(
+            'Invalid password attempt for user ' .$loginName,
+            ['app' => $this->appName]
+        );
+        return false;
+    }
+
+    public function getDisplayNames($search = '', $limit = null, $offset = 0): array {
+        $users = $this->getUsers($search, $limit, $offset);
+
+        $names = [];
+        foreach ($users as $user) {
+            $names[$user] = $this->getDisplayName($user);
+        }
+
+        return $names;
+    }
+
+    public function getUsers($search = '', $limit = null, $offset = 0): array {
+        $cacheKey = self::class . 'users_' . $search . '_' . $limit . '_' . $offset;
+        $cachedUsers = $this->cache->get($cacheKey);
+
+        if ($cachedUsers !== null) {
+            return $cachedUsers;
+        }
+
+        $searchQuery = '{"$regex":"^(?i).*' .$search .'.*"}';
+        $query = 'where={"$or":[{"nethz":' .$searchQuery .'},{"email":' .$searchQuery
+            .'},{"firstname":' .$searchQuery .'},{"lastname":' .$searchQuery .'}]}';
+        
+        if ($limit !== null) {
+          $query .= '&max_results=' .$limit;
+        }
+        if ($offset > 0) {
+          $limit = $limit || 25;
+          $query .= '&page=' .($offset/$limit + 1);
+        }
+
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
+        if ($httpcode === 200) {
+            $users = $this->parseUserListResponse($response, $limit === null);
+            $this->cache->set($cacheKey, $users);
+            return $users;
+        }
+
+        $this->logger->warning('User1: ' .$response, ['app', $this->appName]);
+
+        $this->logger->error(
+          "UserBackend: getUsers($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
+        );
+        return [];
+    }
+
+    private function parseUserListResponse($response, $recursive) {
+        $users = [];
+        foreach ($response->_items as $apiUser) {
+            $user = User::fromApiUserObject($apiUser);
+            $this->addUserToCache($user);
+            $users[] = $user->uid;
+        }
+
+        if ($recursive && isset($response->_links->next)) {
+            list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
+            if ($httpcode === 200) {
+                $users = array_merge($users, $this->parseUserListResponse($response2));
+            }
+        }
+
+        return $users;
+    }
+
+    private function addUserToCache($user) {
+        $cacheKey = self::class . 'user_' . $user->uid;
+        $this->cache->set($cacheKey, $user);
+    }
+
+    /**
+     * Can user change its avatar?
+     *
+     * @param string $uid
+     * @return bool true - if the user can change its avatar; false - otherwise
+     */
+    public function canChangeAvatar(string $uid): bool {
+        return true;
+    }
+
+    public function getBackendName() {
+        return "AMIV API";
+    }
+
+    public function deleteUser($uid) {
+        return false;
+    }
+}

@@ -76,7 +76,6 @@ class LoginController extends Controller {
 
         $this->session->set('amiv.api_token', $token);
         $this->session->set('amiv.oauth_state', bin2hex(random_bytes(32)));
-        $this->apiSync->setToken($token);
 
         $apiUser = $response->_items[0]->user;
         return $this->login($apiUser, $token);
@@ -90,17 +89,11 @@ class LoginController extends Controller {
         }
 
         if (null === $nextcloudUser) {
-            $nextcloudUser = $this->apiSync->createUser($apiUser);
+            throw new LoginException('Authentication failed. The token may be invalid.');
         }
 
         $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => ''], false);
         $this->userSession->createSessionToken($this->request, $nextcloudUser->getUID(), $nextcloudUser->getUID());
-
-        try {
-            $this->apiSync->syncUser($nextcloudUser, $apiUser);
-        } catch (Exception $e) {
-            $this->logger->warning($e, ['app' => $this->appName]);
-        }
 
         return new RedirectResponse($this->urlGenerator->getAbsoluteURL('/'));
     }
