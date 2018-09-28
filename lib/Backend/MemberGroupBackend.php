@@ -265,7 +265,7 @@ final class MemberGroupBackend extends ABackend implements
         if ($recursive && isset($response->_links->next)) {
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
-                $uids = array_merge($uids, $this->parseUsersFromUsersListResponse($response2));
+                $uids = array_merge($uids, $this->parseUsersFromUsersListResponse($response2, true));
             }
         }
 

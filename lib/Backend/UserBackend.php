@@ -258,7 +258,7 @@ final class UserBackend extends ABackend implements
         if ($recursive && isset($response->_links->next)) {
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
-                $users = array_merge($users, $this->parseUserListResponse($response2));
+                $users = array_merge($users, $this->parseUserListResponse($response2, true));
             }
         }
 

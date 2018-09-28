@@ -278,7 +278,7 @@ final class GroupBackend extends ABackend implements
         if ($recursive && isset($response->_links->next)) {
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
-                $groups = array_merge($groups, $this->parseGroupListResponse($response2));
+                $groups = array_merge($groups, $this->parseGroupListResponse($response2, true));
             }
         }
 
@@ -295,7 +295,7 @@ final class GroupBackend extends ABackend implements
         if ($recursive && isset($response->_links->next)) {
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
-                $gids = array_merge($gids, $this->parseGroupsFromGroupMembershipListResponse($response2));
+                $gids = array_merge($gids, $this->parseGroupsFromGroupMembershipListResponse($response2, true));
             }
         }
 
@@ -312,7 +312,7 @@ final class GroupBackend extends ABackend implements
         if ($recursive && isset($response->_links->next)) {
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
-                $uids = array_merge($uids, $this->parseUsersFromGroupMembershipListResponse($response2));
+                $uids = array_merge($uids, $this->parseUsersFromGroupMembershipListResponse($response2, true));
             }
         }
 
