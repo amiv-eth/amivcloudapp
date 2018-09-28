@@ -228,7 +228,7 @@ final class MemberGroupBackend extends ABackend implements
             $query .= '&page=' .($offset/$limit + 1);
         }
 
-        $this->logger->error(
+        $this->logger->debug(
             "MemberGroupBackend: Offset: $offset, Limit: $limit, API query: $query", ['app' => $this->appName]
         );
 
