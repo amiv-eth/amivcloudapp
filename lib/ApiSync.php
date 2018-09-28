@@ -113,7 +113,7 @@ class ApiSync {
         $userFolder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount());
 
         try {
-            $groupShareMapping = $this->groupShareMapper->findByGroupId($group->_id);\
+            $groupShareMapping = $this->groupShareMapper->findByGroupId($group->_id);
             $folders = $userFolder->getById($groupShareMapping->getFolderId());
             if(!empty($folders)) {
                 $folder = $folders[0];
