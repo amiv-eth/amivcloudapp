@@ -232,7 +232,7 @@ final class UserBackend extends ABackend implements
           $query .= '&page=' .($offset/$limit + 1);
         }
 
-        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .urlencode($query), $this->config->getApiKey());
         if ($httpcode === 200) {
             $users = $this->parseUserListResponse($response, $limit === null);
             $this->cache->set($cacheKey, $users);

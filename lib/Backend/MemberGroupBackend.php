@@ -105,7 +105,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .$search .'.*"}';
+            $searchQuery = '{"$regex":"^(?i).*' .urlencode($search) .'.*"}';
             $query .= ',"$or":[';
             $query .= '{"nethz":'. $searchQuery .'},';
             $query .= '{"firstname":'. $searchQuery .'},';
@@ -209,7 +209,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .$search .'.*"}';
+            $searchQuery = '{"$regex":"^(?i).*' .urlencode($search) .'.*"}';
             $query .= ',"$or":[';
             $query .= '{"nethz":'. $searchQuery .'},';
             $query .= '{"firstname":'. $searchQuery .'},';

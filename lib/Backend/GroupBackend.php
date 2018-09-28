@@ -78,7 +78,7 @@ final class GroupBackend extends ABackend implements
             return $groups;
         }
 
-        $query = 'where={"name":{"$regex":"^(?i).*' .$search .'.*"}}';
+        $query = 'where={"name":{"$regex":"^(?i).*' .urlencode($search) .'.*"}}';
         
         if ($limit !== null) {
           $query .= '&max_results=' .$limit;
