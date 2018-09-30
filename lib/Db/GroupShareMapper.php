@@ -68,9 +68,7 @@ class GroupShareMapper extends QBMapper {
     public function findAll($limit=null, $offset=null) {
         $qb = $this->db->getQueryBuilder();
         $qb->select('m.id', 'm.gid', 'm.folder_id')
-	         ->from($this->tableName, 'm')
-	         ->where('m.gid = :gid')
-           ->setParameter(':gid', $gid);
+	         ->from($this->tableName, 'm');
 
         if ($limit !== null) {
             $qb->setMaxResults($limit);
@@ -80,6 +78,6 @@ class GroupShareMapper extends QBMapper {
             $qb->setFirstResult($offset);
         }
 
-        return $this->findEntity($qb);
+        return $this->findEntities($qb);
     }
 }
