@@ -133,7 +133,6 @@ final class GroupBackend extends ABackend implements
             return $inGroup;
         }
 
-        $inGroup = in_array($gid, $this->getUserGroups($uid));
         $this->cache->set($cacheKey, $inGroup, 60);
         return $inGroup;
     }
@@ -154,6 +153,9 @@ final class GroupBackend extends ABackend implements
         }
 
         $gids = $this->parseGroupsFromGroupMembershipListResponse($response, true);
+        if ($this->isAdmin($uid)) {
+            $gids[] = 'admin';
+        }
         $this->cache->set($cacheKey, $gids, 60);
         return $gids;
     }
