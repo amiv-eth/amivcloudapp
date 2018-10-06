@@ -82,9 +82,9 @@ final class MemberGroupBackend extends ABackend implements
     public function getGroups($search = '', $limit = null, $offset = 0) {
         $groups = [];
         foreach ($this->groups as $group) {
-            if (strlen($search) == 0 || preg_match('/' .$search .'/i', $group->name) || preg_match('/' .$search .'/i', $group->gid)) {
+            if (strlen($search) === 0 || preg_match('/' .preg_quote($search, '/') .'/i', $group->name) || preg_match('/' .preg_quote($search, '/') .'/i', $group->gid)) {
                 $groups[] = $group->gid;
-            }
+            } 
         }
         // TODO: use $limit and $offset
         return $groups;
@@ -105,7 +105,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .urlencode($search) .'.*"}';
+            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}';
             $query .= ',"$or":[';
             $query .= '{"nethz":'. $searchQuery .'},';
             $query .= '{"firstname":'. $searchQuery .'},';
@@ -209,7 +209,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .urlencode($search) .'.*"}';
+            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}';
             $query .= ',"$or":[';
             $query .= '{"nethz":'. $searchQuery .'},';
             $query .= '{"firstname":'. $searchQuery .'},';
@@ -219,12 +219,12 @@ final class MemberGroupBackend extends ABackend implements
         }
         $query .= '}';
 
-        if ($limit !== null) {
-            $query .= '&max_results=' .$limit;
-        }
-        if ($offset > 0) {
-            // $limit = $limit || 25;
+        if ($limit === null) {
             $limit = 25;
+        }
+        $query .= '&max_results=' .$limit;
+        if ($offset > 0) {
+            $limit = $limit;
             $query .= '&page=' .($offset/$limit + 1);
         }
 

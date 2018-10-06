@@ -78,7 +78,7 @@ final class GroupBackend extends ABackend implements
             return $groups;
         }
 
-        $query = 'where={"name":{"$regex":"^(?i).*' .urlencode($search) .'.*"}}';
+        $query = 'where={"name":{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}}';
         
         if ($limit !== null) {
           $query .= '&max_results=' .$limit;
@@ -211,17 +211,22 @@ final class GroupBackend extends ABackend implements
             . $limit . '_' . $offset;
         $uids = $this->cache->get($cacheKey);
 
+        $this->logger->error(
+            "GroupBackend: usersInGroup($gid, $search, $limit, $offset) with API response code $httpcode", ['app' => $this->appName]
+          );
+
         if ($uids !== NULL) {
             return $uids;
         }
 
         $query = 'where={"group":"' .$gid .'"}';
 
-        if ($limit !== null) {
-          $query .= '&max_results=' .$limit;
+        if ($limit === null) {
+            $limit = 25;
         }
+        $query .= '&max_results=' .$limit;
         if ($offset > 0) {
-          $limit = $limit || 25;
+          $limit = $limit;
           $query .= '&page=' .($offset/$limit + 1);
         }
 

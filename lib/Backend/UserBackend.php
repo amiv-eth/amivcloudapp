@@ -220,19 +220,24 @@ final class UserBackend extends ABackend implements
             return $cachedUsers;
         }
 
-        $searchQuery = '{"$regex":"^(?i).*' .$search .'.*"}';
+        $searchQuery = '{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}';
         $query = 'where={"$or":[{"nethz":' .$searchQuery .'},{"email":' .$searchQuery
             .'},{"firstname":' .$searchQuery .'},{"lastname":' .$searchQuery .'}]}';
         
-        if ($limit !== null) {
-          $query .= '&max_results=' .$limit;
+        if ($limit === null) {
+            $limit = 25;
         }
+        $query .= '&max_results=' .$limit;
         if ($offset > 0) {
-          $limit = $limit || 25;
+          $limit = $limit;
           $query .= '&page=' .($offset/$limit + 1);
         }
 
-        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .urlencode($query), $this->config->getApiKey());
+        $this->logger->warning(
+            "UserBackend: getUsers($search, $limit, $offset) with query: " .$query, ['app' => $this->appName]
+          );
+
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
         if ($httpcode === 200) {
             $users = $this->parseUserListResponse($response, $limit === null);
             $this->cache->set($cacheKey, $users);
