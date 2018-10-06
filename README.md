@@ -4,6 +4,7 @@
 
 * Place this app in **nextcloud/custom_apps/**
 * Add the following keys to the system configuration `config/config.php`
+* Apply the core patch for your corresponding version with `patch -p3 < nextcloud-\<version\>.patch`.
 
 ```php
 'amiv.api_url' => 'https://api.amiv.ethz.ch/',
