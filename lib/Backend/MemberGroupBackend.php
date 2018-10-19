@@ -105,7 +105,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}';
+            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .'.*"}';
             $query .= ',"$or":[';
             $query .= '{"nethz":'. $searchQuery .'},';
             $query .= '{"firstname":'. $searchQuery .'},';
@@ -191,6 +191,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         return false;
+
     }
 
     public function usersInGroup($gid, $search = '', $limit = null, $offset = 0) {
@@ -209,7 +210,7 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}';
+            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .'.*"}';
             $query .= ',"$or":[';
             $query .= '{"nethz":'. $searchQuery .'},';
             $query .= '{"firstname":'. $searchQuery .'},';

@@ -220,7 +220,7 @@ final class UserBackend extends ABackend implements
             return $cachedUsers;
         }
 
-        $searchQuery = '{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}';
+        $searchQuery = '{"$regex":"^(?i).*(' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .').*"}';
         $query = 'where={"$or":[{"nethz":' .$searchQuery .'},{"email":' .$searchQuery
             .'},{"firstname":' .$searchQuery .'},{"lastname":' .$searchQuery .'}]}';
         

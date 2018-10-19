@@ -78,7 +78,7 @@ final class GroupBackend extends ABackend implements
             return $groups;
         }
 
-        $query = 'where={"name":{"$regex":"^(?i).*' .rawurlencode($search) .'.*"}}';
+        $query = 'where={"name":{"$regex":"^(?i).*' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .'.*"}}';
         
         if ($limit !== null) {
           $query .= '&max_results=' .$limit;
