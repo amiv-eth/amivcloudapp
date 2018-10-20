@@ -78,10 +78,6 @@ class ApiSync {
             'groupmemberships?where={"group":{"$in":["' .implode('","', $this->config->getApiAdminGroups()) .'"]}}',
             $this->config->getApiKey()
         );
-        $this->logger->debug(
-            'ApiSync-6: API request: ' .'groupmemberships?where={"group":{"$in":["' .implode('","', $this->config->getApiAdminGroups()) .'"]}}',
-            ['app' => $this->appName]
-        );
 
         if ($httpcode != 200) {
             $this->logger->error(
@@ -91,21 +87,32 @@ class ApiSync {
         }
 
         $apiGroupmemberships = $response->_items;
+        $nextcloudAdminGroup = $this->groupManager->get('admin');
         $adminGroups = $this->config->getApiAdminGroups();
+        $addedUsers = [];
 
         // add AMIV API groups to Nextcloud & create share & add user
         foreach ($apiGroupmemberships as $item) {
             $nextcloudUser = $this->userManager->get($item->user);
 
             if ($nextcloudUser !== null) {
-                if (!$this->groupManager->isInGroup($nextcloudUser->getUID(), 'admin')) {
-                        $this->groupManager->get('admin')->addUser($nextcloudUser);
+                $addedUsers[] = $nextcloudUser->getUID();
+                if (!$nextcloudAdminGroup->inGroup($nextcloudUser->getUID())) {
+                    $nextcloudAdminGroup->addUser($nextcloudUser);
                 }
             } else {
                 $this->logger->error(
                     'ApiSync-15: Could not find nextcloud user "' .$item->user .'"',
                     ['app' => $this->appName]
                 );
+            }
+        }
+
+        $nextcloudAdminUsers = $nextcloudAdminGroup->getUsers();
+
+        foreach($nextcloudAdminUsers as $adminUser) {
+            if (!in_array($adminUser, $addedUsers)) {
+                $nextcloudAdminGroup->removeUser($adminUser);
             }
         }
     }
