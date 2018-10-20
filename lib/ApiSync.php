@@ -70,6 +70,60 @@ class ApiSync {
     }
 
     /**
+     * Sync admin users from API
+     */
+    public function syncAdminUsers() {
+        list($httpcode, $response) = ApiUtil::get(
+            $this->config->getApiServerUrl(),
+            'groupmemberships?where={"group":{"$in":["' .implode('","', $this->config->getApiAdminGroups()) .'"]}}',
+            $this->config->getApiKey()
+        );
+
+        if ($httpcode != 200) {
+            $this->logger->error(
+                'ApiSync-14: Could not get groupmemberships for admin groups from API (Code:' .$httpcode .'; Response: ' .json_encode($response) .')',
+                ['app' => $this->appName]
+            );
+        }
+
+        $apiGroupmemberships = $response->_items;
+        $nextcloudAdminGroup = $this->groupManager->get('admin');
+        $adminGroups = $this->config->getApiAdminGroups();
+        $addedUsers = [$this->config->getFileOwnerAccount()];
+
+        // ensure that the file owner account is always in the admin group
+        $adminUser = $this->userManager->get($this->config->getFileOwnerAccount());
+        if ($adminUser !== null && !$nextcloudAdminGroup->inGroup($adminUser)) {
+            $nextcloudAdminGroup->addUser($adminUser);
+        }
+
+        // add AMIV API groups to Nextcloud & create share & add user
+        foreach ($apiGroupmemberships as $item) {
+            $nextcloudUser = $this->userManager->get($item->user);
+
+            if ($nextcloudUser !== null) {
+                $addedUsers[] = $nextcloudUser->getUID();
+                if (!$nextcloudAdminGroup->inGroup($nextcloudUser)) {
+                    $nextcloudAdminGroup->addUser($nextcloudUser);
+                }
+            } else {
+                $this->logger->error(
+                    'ApiSync-15: Could not find nextcloud user "' .$item->user .'"',
+                    ['app' => $this->appName]
+                );
+            }
+        }
+
+        $nextcloudAdminUsers = $nextcloudAdminGroup->getUsers();
+
+        foreach($nextcloudAdminUsers as $adminUser) {
+            if (!in_array($adminUser, $addedUsers)) {
+                $nextcloudAdminGroup->removeUser($adminUser);
+            }
+        }
+    }
+
+    /**
      * Sync group shares
      */
     public function syncShares() {
@@ -112,7 +166,7 @@ class ApiSync {
                 }
             }
         } else {
-            $this->logger->error('ApiSync-12: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+            $this->logger->error('ApiSync-12: Could not get groups from API (Code:' .$httpcode .'; Response: ' .json_encode($response) .')', ['app' => $this->appName]);
         }
     }
 
@@ -240,7 +294,7 @@ class ApiSync {
             if ($httpcode === 200) {
                 $groups = array_merge($groups, $this->parseGroupListResponse($response2));
             } else {
-                $this->logger->error('ApiSync-13: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+                $this->logger->error('ApiSync-13: Could not get groups from API (Code:' .$httpcode .'; Response: ' .json_encode($response) .')', ['app' => $this->appName]);
             }
         }
 

@@ -165,9 +165,6 @@ final class GroupBackend extends ABackend implements
         }
 
         $gids = $this->parseGroupsFromGroupMembershipListResponse($response, true);
-        if ($this->isAdmin($uid)) {
-            $gids[] = 'admin';
-        }
         $this->cache->set($cacheKey, $gids, 60);
         return $gids;
     }
