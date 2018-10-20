@@ -76,7 +76,7 @@ class ApiSync {
         list($httpcode, $response) = ApiUtil::get(
             $this->config->getApiServerUrl(),
             'groupmemberships?where={"group":{"$in":[' .implode(',', $this->config->getApiAdminGroups()) .']}}',
-            $this->getToken()
+            $this->config->getApiKey()
         );
 
         if ($httpcode != 200) {
