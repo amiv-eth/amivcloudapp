@@ -75,13 +75,17 @@ class ApiSync {
     public function syncAdminUsers() {
         list($httpcode, $response) = ApiUtil::get(
             $this->config->getApiServerUrl(),
-            'groupmemberships?where={"group":{"$in":[' .implode(',', $this->config->getApiAdminGroups()) .']}}',
+            'groupmemberships?where={"group":{"$in":["' .implode('","', $this->config->getApiAdminGroups()) .'"]}}',
             $this->config->getApiKey()
+        );
+        $this->logger->debug(
+            'ApiSync-6: API request: ' .'groupmemberships?where={"group":{"$in":["' .implode('","', $this->config->getApiAdminGroups()) .'"]}}',
+            ['app' => $this->appName]
         );
 
         if ($httpcode != 200) {
             $this->logger->error(
-                'ApiSync-14: Could not get groupmemberships for admin groups from API (Code:' .$httpcode .'; Response: ' .$response .')',
+                'ApiSync-14: Could not get groupmemberships for admin groups from API (Code:' .$httpcode .'; Response: ' .json_encode($response) .')',
                 ['app' => $this->appName]
             );
         }
@@ -149,7 +153,7 @@ class ApiSync {
                 }
             }
         } else {
-            $this->logger->error('ApiSync-12: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+            $this->logger->error('ApiSync-12: Could not get groups from API (Code:' .$httpcode .'; Response: ' .json_encode($response) .')', ['app' => $this->appName]);
         }
     }
 
@@ -277,7 +281,7 @@ class ApiSync {
             if ($httpcode === 200) {
                 $groups = array_merge($groups, $this->parseGroupListResponse($response2));
             } else {
-                $this->logger->error('ApiSync-13: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+                $this->logger->error('ApiSync-13: Could not get groups from API (Code:' .$httpcode .'; Response: ' .json_encode($response) .')', ['app' => $this->appName]);
             }
         }
 
