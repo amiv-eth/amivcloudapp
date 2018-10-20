@@ -220,9 +220,19 @@ final class UserBackend extends ABackend implements
             return $cachedUsers;
         }
 
-        $searchQuery = '{"$regex":"^(?i).*(' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .').*"}';
-        $query = 'where={"$or":[{"nethz":' .$searchQuery .'},{"email":' .$searchQuery
-            .'},{"firstname":' .$searchQuery .'},{"lastname":' .$searchQuery .'}]}';
+        if (strlen($search) > 0) {
+            $searchQueries = [];
+            $keywords = explode(' ', $search);
+
+            foreach ($keywords as $keyword) {
+                $regexQuery = '{"$regex":"^(?i).*(' .rawurlencode(preg_quote($keyword, '/')) .').*"}';
+                $searchQueries[] = '{"$or":[{"nethz":' .$regexQuery .'},{"email":' .$regexQuery
+                    .'},{"firstname":' .$regexQuery .'},{"lastname":' .$regexQuery .'}]}';
+            }
+            $query = 'where={"$and":[' .implode(',', $searchQueries) .']}';
+        } else {
+            $query = '';
+        }
         
         if ($limit === null) {
             $limit = 25;

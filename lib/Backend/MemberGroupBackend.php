@@ -210,13 +210,15 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         if (strlen($search) > 0) {
-            $searchQuery = '{"$regex":"^(?i).*' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .'.*"}';
-            $query .= ',"$or":[';
-            $query .= '{"nethz":'. $searchQuery .'},';
-            $query .= '{"firstname":'. $searchQuery .'},';
-            $query .= '{"lastname":'. $searchQuery .'},';
-            $query .= '{"email":'. $searchQuery .'}';
-            $query .= ']';
+            $searchQueries = [];
+            $keywords = explode(' ', $search);
+
+            foreach ($keywords as $keyword) {
+                $regexQuery = '{"$regex":"^(?i).*(' .rawurlencode(preg_quote($keyword, '/')) .').*"}';
+                $searchQueries[] = '{"$or":[{"nethz":' .$regexQuery .'},{"email":' .$regexQuery
+                    .'},{"firstname":' .$regexQuery .'},{"lastname":' .$regexQuery .'}]}';
+            }
+            $query .= ',"$and":[' .implode(',', $searchQueries) .']}';
         }
         $query .= '}';
 

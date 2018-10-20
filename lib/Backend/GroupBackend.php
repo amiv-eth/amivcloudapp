@@ -78,6 +78,18 @@ final class GroupBackend extends ABackend implements
             return $groups;
         }
 
+        if (strlen($search) > 0) {
+            $searchQueries = [];
+            $keywords = explode(' ', $search);
+
+            foreach ($keywords as $keyword) {
+                $regexQuery = '{"$regex":"^(?i).*(' .rawurlencode(preg_quote($keyword, '/')) .').*"}';
+                $searchQueries[] = '{"name":' .$regexQuery .'}';
+            }
+            $query = 'where={"$and":[' .implode(',', $searchQueries) .']}';
+        } else {
+            $query = '';
+        }
         $query = 'where={"name":{"$regex":"^(?i).*' .rawurlencode(str_replace(" ", "|", preg_quote($search, '/'))) .'.*"}}';
         
         if ($limit !== null) {
