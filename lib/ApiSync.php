@@ -91,6 +91,12 @@ class ApiSync {
         $adminGroups = $this->config->getApiAdminGroups();
         $addedUsers = [$this->config->getFileOwnerAccount()];
 
+        // ensure that the file owner account is always in the admin group
+        $adminUser = $this->userManager->get($this->config->getFileOwnerAccount());
+        if ($adminUser !== null && !$nextcloudAdminGroup->inGroup($adminUser)) {
+            $nextcloudAdminGroup->addUser($adminUser);
+        }
+
         // add AMIV API groups to Nextcloud & create share & add user
         foreach ($apiGroupmemberships as $item) {
             $nextcloudUser = $this->userManager->get($item->user);
@@ -111,7 +117,7 @@ class ApiSync {
         $nextcloudAdminUsers = $nextcloudAdminGroup->getUsers();
 
         foreach($nextcloudAdminUsers as $adminUser) {
-            if (!in_array($adminUser->getUID(), $addedUsers)) {
+            if (!in_array($adminUser, $addedUsers)) {
                 $nextcloudAdminGroup->removeUser($adminUser);
             }
         }
