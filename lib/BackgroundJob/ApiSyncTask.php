@@ -44,5 +44,6 @@ class ApiSyncTask extends TimedJob {
 
     protected function run($argument) {
 				$this->apiSync->syncShares();
+				$this->apiSync->syncAdminUsers();
     }
 }

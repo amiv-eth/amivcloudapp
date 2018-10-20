@@ -70,6 +70,43 @@ class ApiSync {
     }
 
     /**
+     * Sync admin users from API
+     */
+    public function syncAdminUsers() {
+        list($httpcode, $response) = ApiUtil::get(
+            $this->config->getApiServerUrl(),
+            'groupmemberships?where={"group":{"$in":[' .implode(',', $this->config->getApiAdminGroups()) .']}}',
+            $this->getToken()
+        );
+
+        if ($httpcode != 200) {
+            $this->logger->error(
+                'ApiSync-14: Could not get groupmemberships for admin groups from API (Code:' .$httpcode .'; Response: ' .$response .')',
+                ['app' => $this->appName]
+            );
+        }
+
+        $apiGroupmemberships = $response->_items;
+        $adminGroups = $this->config->getApiAdminGroups();
+
+        // add AMIV API groups to Nextcloud & create share & add user
+        foreach ($apiGroupmemberships as $item) {
+            $nextcloudUser = $this->userManager->get($item->user);
+
+            if ($nextcloudUser !== null) {
+                if (!$this->groupManager->isInGroup($nextcloudUser->getUID(), 'admin')) {
+                        $this->groupManager->get('admin')->addUser($nextcloudUser);
+                }
+            } else {
+                $this->logger->error(
+                    'ApiSync-15: Could not find nextcloud user "' .$item->user .'"',
+                    ['app' => $this->appName]
+                );
+            }
+        }
+    }
+
+    /**
      * Sync group shares
      */
     public function syncShares() {
