@@ -9,3 +9,14 @@
  			}
  		} catch (GenericEncryptionException $e) {
  			// in case of a encryption exception we delete the file right away
+--- original/apps/files_trashbin/lib/Storage.php	2018-10-06 14:38:24.000000000 +0200
++++ patched/apps/files_trashbin/lib/Storage.php	2018-10-06 14:40:16.000000000 +0200
+@@ -208,7 +208,7 @@
+			$result = $this->doDelete($path, 'rmdir', true);
+			unset(self::$moveOutOfSharedFolder[$this->mountPoint . $path]);
+		} else {
+-			$result = $this->doDelete($path, 'rmdir');
++			$result = $this->doDelete($path, 'rmdir', true);
+		}
+		return $result;
+	}
