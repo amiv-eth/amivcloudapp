@@ -10,10 +10,10 @@
 'amiv.api_url' => 'https://api.amiv.ethz.ch/',
 'amiv.api_key' => '<api-key-used-for-background-sync>',
 'amiv.oauth_client_identifier' => 'AMIV Cloud',
-'amiv.oauth_autoredirect' => true,
-'amiv.file_owner' => 'amivadmin',
+'amiv.oauth_autoredirect' => true,      // Automatically redirect to OAuth login page.
+'amiv.file_owner' => 'amivadmin',       // Owner of all group folders
 'amiv.api_admin_groups' => ['<admin-group-id>'],
-'amiv.group_share_retention' => 172800
+'amiv.group_share_retention' => 172800  // how long deleted group folders are kept.
 ```
 
 The provided API key needs `read` permissions for `users`, `groups` and `groupmemberships`.
@@ -22,4 +22,4 @@ The provided API key needs `read` permissions for `users`, `groups` and `groupme
 
 Increase the max Nextcloud version in `appinfo/info.xml`. Verify the apps functionality in a test environment. If everything is working, deploy it to the production environment. Please make sure that you enable the maintenance mode first in Nextcloud before you continue the deploy of the new app version.
 
-** Do a backup beforehand!**
+**Do a backup beforehand!**
