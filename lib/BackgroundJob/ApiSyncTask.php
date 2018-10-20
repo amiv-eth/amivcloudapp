@@ -33,9 +33,7 @@ class ApiSyncTask extends TimedJob {
     protected $apiSync;
 
 		/**
-		 * @param string $appName
 		 * @param ApiSync $apiSync
-		 * @param ILogger $logger
 		 */
 		public function __construct(ApiSync $apiSync) {
 				$this->apiSync = $apiSync;

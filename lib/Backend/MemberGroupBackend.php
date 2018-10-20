@@ -231,10 +231,6 @@ final class MemberGroupBackend extends ABackend implements
             $query .= '&page=' .($offset/$limit + 1);
         }
 
-        $this->logger->debug(
-            "MemberGroupBackend: Offset: $offset, Limit: $limit, API query: $query", ['app' => $this->appName]
-        );
-
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
 
         if ($httpcode !== 200) {

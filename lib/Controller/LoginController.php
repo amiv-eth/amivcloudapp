@@ -71,7 +71,11 @@ class LoginController extends Controller {
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'sessions?where={"token":"' .$token .'"}&embedded={"user":1}', $token);
 
         if ($httpcode !== 200 || count($response->_items) !== 1) {
-          throw new LoginException('Authentication failed. The token may be invalid.');
+            $this->logger->info(
+                'OAuth Authentication failed (API response code: ' . $httpcode .')',
+                ['app' => $this->appName]
+            );
+            throw new LoginException('Authentication failed. The token may be invalid.');
         }
 
         $this->session->set('amiv.api_token', $token);
@@ -89,6 +93,10 @@ class LoginController extends Controller {
         }
 
         if (null === $nextcloudUser) {
+            $this->logger->info(
+                'OAuth Authentication failed for user ' . $apiUser->_id,
+                ['app' => $this->appName]
+            );
             throw new LoginException('Authentication failed. The token may be invalid.');
         }
 

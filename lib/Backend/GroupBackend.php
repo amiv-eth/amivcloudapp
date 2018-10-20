@@ -223,10 +223,6 @@ final class GroupBackend extends ABackend implements
             . $limit . '_' . $offset;
         $uids = $this->cache->get($cacheKey);
 
-        $this->logger->error(
-            "GroupBackend: usersInGroup($gid, $search, $limit, $offset) with API response code $httpcode", ['app' => $this->appName]
-          );
-
         if ($uids !== NULL) {
             return $uids;
         }

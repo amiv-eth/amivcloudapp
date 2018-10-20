@@ -243,18 +243,12 @@ final class UserBackend extends ABackend implements
           $query .= '&page=' .($offset/$limit + 1);
         }
 
-        $this->logger->warning(
-            "UserBackend: getUsers($search, $limit, $offset) with query: " .$query, ['app' => $this->appName]
-          );
-
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
         if ($httpcode === 200) {
             $users = $this->parseUserListResponse($response, $limit === null);
             $this->cache->set($cacheKey, $users);
             return $users;
         }
-
-        $this->logger->warning('User1: ' .$response, ['app', $this->appName]);
 
         $this->logger->error(
           "UserBackend: getUsers($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
