@@ -97,7 +97,7 @@ class ApiSync {
 
             if ($nextcloudUser !== null) {
                 $addedUsers[] = $nextcloudUser->getUID();
-                if (!$nextcloudAdminGroup->inGroup($nextcloudUser->getUID())) {
+                if (!$nextcloudAdminGroup->inGroup($nextcloudUser)) {
                     $nextcloudAdminGroup->addUser($nextcloudUser);
                 }
             } else {
