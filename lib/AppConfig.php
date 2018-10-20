@@ -94,11 +94,11 @@ class AppConfig {
     private $_apiAdminGroups = "amiv.api_admin_groups";
 
     /**
-     * The config key for the internal group
+     * The config key for the group share retention time
      *
-     * @var string
+     * @var int
      */
-    private $_internalGroup = "amiv.internal_group";
+    private $_groupShareRetention = "amiv.group_share_retention";
 
 
     /**
@@ -177,11 +177,12 @@ class AppConfig {
     }
 
     /**
-     * Get the internal group from the configuration
+     * Get the group share retention time
      *
-     * @return string
+     * @return array
      */
-    public function getInternalGroup() {
-        return $this->config->getSystemValue($this->_internalGroup, "member");
+    public function getGroupShareRetention() {
+        // Defaults to 2 days (60*60*48 seconds)
+        return $this->config->getSystemValue($this->_groupShareRetention, 172800);
     }
 }

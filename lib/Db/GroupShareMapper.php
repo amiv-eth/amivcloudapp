@@ -45,7 +45,7 @@ class GroupShareMapper extends QBMapper {
      */
     public function findByFolderId($folderId) {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('m.id', 'm.gid', 'm.folder_id')
+        $qb->select('m.id', 'm.gid', 'm.folder_id', 'deleted_at')
 	         ->from($this->tableName, 'm')
 	         ->where('m.folder_id = :folder_id')
 	         ->setParameter(':folder_id', $folderId);
@@ -58,16 +58,51 @@ class GroupShareMapper extends QBMapper {
      */
     public function findByGroupId($gid) {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('m.id', 'm.gid', 'm.folder_id')
+        $qb->select('m.id', 'm.gid', 'm.folder_id', 'deleted_at')
 	         ->from($this->tableName, 'm')
 	         ->where('m.gid = :gid')
 	         ->setParameter(':gid', $gid);
         return $this->findEntity($qb);
     }
 
+    public function findDeletedBefore($time, $limit=null, $offset=null) {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('m.id', 'm.gid', 'm.folder_id', 'deleted_at')
+             ->from($this->tableName, 'm')
+             ->where('m.deleted_at < :time')
+             ->setParameter(':time', $time);
+
+        if ($limit !== null) {
+            $qb->setMaxResults($limit);
+        }
+
+        if ($offset !== null) {
+            $qb->setFirstResult($offset);
+        }
+
+        return $this->findEntities($qb);
+    }
+
+    public function findDeleted($limit=null, $offset=null) {
+        $qb = $this->db->getQueryBuilder();
+        $qb->select('m.id', 'm.gid', 'm.folder_id', 'deleted_at')
+             ->from($this->tableName, 'm')
+             ->where('m.deleted_at IS NOT NULL');
+
+        if ($limit !== null) {
+            $qb->setMaxResults($limit);
+        }
+
+        if ($offset !== null) {
+            $qb->setFirstResult($offset);
+        }
+
+        return $this->findEntities($qb);
+    }
+
     public function findAll($limit=null, $offset=null) {
         $qb = $this->db->getQueryBuilder();
-        $qb->select('m.id', 'm.gid', 'm.folder_id')
+        $qb->select('m.id', 'm.gid', 'm.folder_id', 'deleted_at')
 	         ->from($this->tableName, 'm');
 
         if ($limit !== null) {

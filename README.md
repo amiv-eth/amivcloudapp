@@ -12,7 +12,8 @@
 'amiv.oauth_client_identifier' => 'AMIV Cloud',
 'amiv.oauth_autoredirect' => true,
 'amiv.file_owner' => 'amivadmin',
-'amiv.api_admin_groups' => ['<admin-group-id>']
+'amiv.api_admin_groups' => ['<admin-group-id>'],
+'amiv.group_share_retention' => 172800
 ```
 
 The provided API key needs `read` permissions for `users`, `groups` and `groupmemberships`.

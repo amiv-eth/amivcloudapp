@@ -87,17 +87,53 @@ class ApiSync {
             // Remove all linked folders not containing
             $linkedGroupFolders = $this->groupShareMapper->findAll();
             foreach ($linkedGroupFolders as $linkedGroupFolder) {
-                if (!in_array($linkedGroupFolder['gid'], $addedShares)) {
-                    $folder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($linkedGroupFolder->getFolderId());
-                    if ($folder !== null) {
-                        $this->removeSharesFromFolder($folder);
-                    } else {
-                        $this->groupShareMapper->deleteById($linkedGroupFolder['id']);
+                if (!in_array($linkedGroupFolder->getGid(), $addedShares)) {
+                    if ($linkedGroupFolder->getDeletedAt() === null) {
+                        $folders = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($linkedGroupFolder->getFolderId());
+                        if (count($folders) > 0) {
+                            $this->removeSharesFromFolder($folders[0]);
+                            $linkedGroupFolder->setDeletedAt(time());
+                            $this->groupShareMapper->update($linkedGroupFolder);
+                            $this->logger->info(
+                                'ApiSync-2: Shared folder for group "' .$linkedGroupFolder->getDeletedAt() .'" scheduled for deletion.',
+                                ['app' => $this->appName]
+                            );
+                        } else {
+                            $this->groupShareMapper->deleteById($linkedGroupFolder->getId());
+                        }
                     }
+                } else if ($linkedGroupFolder->getDeletedAt() !== null) {
+                    $linkedGroupFolder->setDeletedAt(null);
+                    $this->groupShareMapper->update($linkedGroupFolder);
+                    $this->logger->info(
+                        'ApiSync-3: Share folder for group "' .$linkedGroupFolder->getDeletedAt() .'" restored.',
+                        ['app' => $this->appName]
+                    );
                 }
             }
         } else {
             $this->logger->error('ApiSync-12: Could not get groups from API (Code:' .$httpcode .'; Response: ' .$response .')', ['app' => $this->appName]);
+        }
+    }
+
+    /**
+     * Clean up old shares
+     */
+    public function cleanupShares() {
+        $thresholdTime = time() - $this->config->getGroupShareRetention();
+        $deletedMappings = $this->groupShareMapper->findDeletedBefore($thresholdTime);
+        $userFolder = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount());
+
+        foreach($deletedMappings as $mapping) {
+            $folders = $this->rootFolder->getUserFolder($this->config->getFileOwnerAccount())->getById($mapping->getFolderId());
+            if (count($folders) > 0) {
+                $folders[0]->delete();
+            }
+            $this->groupShareMapper->deleteById($mapping->getId());
+            $this->logger->info(
+                'ApiSync-4: Share folder for group "' .$mapping->getDeletedAt() .'" deleted.',
+                ['app' => $this->appName]
+            );
         }
     }
 

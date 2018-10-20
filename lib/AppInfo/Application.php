@@ -31,6 +31,7 @@ use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\Cache;
 use OCA\AmivCloudApp\Db\GroupShareMapper;
 use OCA\AmivCloudApp\BackgroundJob\ApiSyncTask;
+use OCA\AmivCloudApp\BackgroundJob\CleanupTask;
 use OCA\AmivCloudApp\Controller\LoginController;
 use OCA\AmivCloudApp\Backend\UserBackend;
 use OCA\AmivCloudApp\Backend\GroupBackend;
@@ -130,6 +131,9 @@ class Application extends App {
         // BackgroundJobs
         $container->registerService(ApiSyncTask::class, function($c) {
             return new ApiSyncTask($c->query(ApiSync::class));
+        });
+        $container->registerService(CleanupTask::class, function($c) {
+            return new CleanupTask($c->query(ApiSync::class));
         });
     }
 
