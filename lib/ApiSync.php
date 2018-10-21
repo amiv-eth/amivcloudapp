@@ -117,7 +117,7 @@ class ApiSync {
         $nextcloudAdminUsers = $nextcloudAdminGroup->getUsers();
 
         foreach($nextcloudAdminUsers as $adminUser) {
-            if (!in_array($adminUser, $addedUsers)) {
+            if (!in_array($adminUser->getUID(), $addedUsers)) {
                 $nextcloudAdminGroup->removeUser($adminUser);
             }
         }
