@@ -137,9 +137,13 @@ final class UserBackend extends ABackend implements
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$uid, $this->config->getApiKey());
         if ($httpcode === 200) {
-          $user = User::fromApiUserObject($response);
-          $this->cache->set($cacheKey, $user);
-          return $user;
+            if ($uid !== $response->_id) {
+                $this->cache->set($cacheKey, $user);
+                return false;
+            }
+            $user = User::fromApiUserObject($response);
+            $this->cache->set($cacheKey, $user);
+            return $user;
         }
         if ($httpcode === 404) {
           $this->cache->set($cacheKey, false);
