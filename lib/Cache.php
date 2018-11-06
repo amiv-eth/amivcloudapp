@@ -74,7 +74,7 @@ class Cache
      */
     public function get($key, $allowExpired = false)
     {
-        if (!$allowExpired && null === $this->cache->get($key ."_valid")
+        if (!$allowExpired && null === $this->cache->get($key ."_valid"))
         {
             // return null if the stored value has expired
             return null;
