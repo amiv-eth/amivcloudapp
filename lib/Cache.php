@@ -93,7 +93,7 @@ class Cache
      */
     public function set($key, $value, $ttl = 3600)
     {
-        return $this->cache->get($key ."_valid", true, $ttl) && $this->cache->set($key, $value, 0);
+        return $this->cache->set($key ."_valid", true, $ttl) && $this->cache->set($key, $value, 0);
     }
 
     /**
