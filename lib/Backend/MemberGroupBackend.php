@@ -288,7 +288,7 @@ final class MemberGroupBackend extends ABackend implements
                 $this->cache->set($cacheKey, $uids, 60);
                 return $uids;
             }
-        } catch($e) {
+        } catch(Exception $e) {
             $httpcode = $e->getMessage();
         }
 

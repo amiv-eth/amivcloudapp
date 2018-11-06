@@ -116,7 +116,7 @@ final class GroupBackend extends ABackend implements
                 $this->cache->set($cacheKey, $groups);
                 return $groups;
             }
-        } catch ($e) {
+        } catch (Exception $e) {
             $httpcode = $e->getMessage();
         }
 
@@ -154,7 +154,7 @@ final class GroupBackend extends ABackend implements
                 $this->cache->set($cacheKey, $count, 60);
                 return $count;
             }
-        } catch ($e) {
+        } catch (Exception $e) {
             $httpcode = $e->getMessage();
         }
 
@@ -210,7 +210,7 @@ final class GroupBackend extends ABackend implements
                 $this->cache->set($cacheKey, $gids, 60);
                 return $gids;
             }
-        } catch ($e) {
+        } catch (Exception $e) {
             $httpcode = $e->getMessage();
         }
 
@@ -321,7 +321,7 @@ final class GroupBackend extends ABackend implements
                 $this->cache->set($cacheKey, $uids, 60);
                 return $uids;
             }
-        } catch ($e) {
+        } catch (Exception $e) {
             $httpcode = $e->getMessage();
         }
 

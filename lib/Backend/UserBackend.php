@@ -303,7 +303,7 @@ final class UserBackend extends ABackend implements
                 $this->cache->set($cacheKey, $users);
                 return $users;
             }
-        } catch ($e) {
+        } catch (Exception $e) {
             $httpcode = $e->getMessage();
         }
 
