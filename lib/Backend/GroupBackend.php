@@ -69,12 +69,20 @@ final class GroupBackend extends ABackend implements
         $this->logger = $logger;
     }
 
+    /**
+	 * Get a list of all groups
+     *
+	 * @param string $search
+	 * @param int $limit
+	 * @param int $offset
+	 * @return array an array of group IDs
+	 */
     public function getGroups($search = '', $limit = null, $offset = 0) {
         $cacheKey = self::class . 'groups_' . $search . '_' . $limit . '_'
             . $offset;
         $groups = $this->cache->get($cacheKey);
 
-        if ($groups !== NULL) {
+        if ($groups !== null) {
             return $groups;
         }
 
@@ -101,20 +109,34 @@ final class GroupBackend extends ABackend implements
         }
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groups?' .$query, $this->config->getApiKey());
-        if ($httpcode === 200) {
-            $groups = $this->parseGroupListResponse($response, $limit === null);
-            $this->cache->set($cacheKey, $groups);
-            return $groups;
+
+        try {
+            if ($httpcode === 200) {
+                $groups = $this->parseGroupListResponse($response, $limit === null);
+                $this->cache->set($cacheKey, $groups);
+                return $groups;
+            }
+        } catch ($e) {
+            $httpcode = $e->getMessage();
         }
 
         $this->logger->error(
           "GroupBackend: getGroups($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
         );
-        return [];
+
+        // Return outdated values if no data could be loaded from API.
+        $groups = $this->cache->get($cacheKey, true);
+        return null !== $groups ? $groups : [];
     }
 
+    /**
+     * Counts the number of users in the group
+     * 
+     * @param string $gid group ID
+     * @param string $search search string (not used at the moment)
+     */
     public function countUsersInGroup(string $gid, string $search = ''): int {
-        $cacheKey = self::class . 'users#_' . $gid . '_' . $search;
+        $cacheKey = self::class . 'users#_' . $gid;
         $count = $this->cache->get($cacheKey);
 
         if ($count !== null) {
@@ -125,18 +147,33 @@ final class GroupBackend extends ABackend implements
         // TODO: use search term in API request. (This is not trivial as MongoDB is not a relational database!)
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groupmemberships?' .$query, $this->config->getApiKey());
-        if ($httpcode === 200) {
-            $count = (int) $response->_meta->total;
-            $this->cache->set($cacheKey, $count, 60);
-            return $count;
+        
+        try {
+            if ($httpcode === 200) {
+                $count = (int) $response->_meta->total;
+                $this->cache->set($cacheKey, $count, 60);
+                return $count;
+            }
+        } catch ($e) {
+            $httpcode = $e->getMessage();
         }
 
         $this->logger->error(
           "GroupBackend: countUsersInGroup($gid, $search) with API response code $httpcode", ['app' => $this->appName]
         );
-        return 0;
+
+        // Return outdated values if no data could be loaded from API.
+        $count = $this->cache->get($cacheKey, true);
+        return null !== $count ? $count : 0;
     }
 
+    /**
+	 * Checks whether the user is member of a group or not.
+     *
+	 * @param string $uid uid of the user
+	 * @param string $gid gid of the group
+	 * @return bool
+	 */
     public function inGroup($uid, $gid) {
         $cacheKey = self::class . 'user_group_' . $uid . '_' . $gid;
         $inGroup = $this->cache->get($cacheKey);
@@ -149,6 +186,12 @@ final class GroupBackend extends ABackend implements
         return $inGroup;
     }
 
+    /**
+	 * Get all groups a user belongs to
+     *
+	 * @param string $uid Name of the user
+	 * @return array an array of group names
+	 */
     public function getUserGroups($uid) {
         $cacheKey = self::class . 'user_groups_' . $uid;
         $gids = $this->cache->get($cacheKey);
@@ -160,15 +203,32 @@ final class GroupBackend extends ABackend implements
         $query = 'where={"user":"' .$uid .'"}&max_results=100';
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groupmemberships?' .$query, $this->config->getApiKey());
-        if ($httpcode !== 200) {
-          return [];
+        
+        try {
+            if ($httpcode === 200) {
+                $gids = $this->parseGroupsFromGroupMembershipListResponse($response, true);
+                $this->cache->set($cacheKey, $gids, 60);
+                return $gids;
+            }
+        } catch ($e) {
+            $httpcode = $e->getMessage();
         }
 
-        $gids = $this->parseGroupsFromGroupMembershipListResponse($response, true);
-        $this->cache->set($cacheKey, $gids, 60);
-        return $gids;
+        $this->logger->error(
+            "GroupBackend: getUserGroups($uid) with API response code $httpcode", ['app' => $this->appName]
+          );
+
+        // Return outdated values if no data could be loaded from API.
+        $gids = $this->cache->get($cacheKey, true);
+        return null !== $gids ? $gids : [];
     }
 
+    /**
+	 * Check if a group exists
+     *
+	 *  @param string $gid
+	 * @return bool
+	 */
     public function groupExists($gid) {
         $group = $this->getGroup($gid);
 
@@ -203,24 +263,42 @@ final class GroupBackend extends ABackend implements
         }
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groups/' .$gid, $this->config->getApiKey());
+
         if ($httpcode === 200) {
-          $group = Group::fromApiGroupObject($response, $this->config);
-          $this->cache->set($cacheKey, $group);
-          return $group;
+            $group = Group::fromApiGroupObject($response, $this->config);
+            $this->cache->set($cacheKey, $group);
+            return $group;
         }
+
         if ($httpcode === 404) {
-          $this->cache->set($cacheKey, false);
-          return false;
+            $this->cache->set($cacheKey, null);
+            return null;
         }
-        return null;
+
+        $this->logger->error(
+            "GroupBackend: getGroup($gid) with API response code $httpcode", ['app' => $this->appName]
+        );
+
+        // Return outdated values if no data could be loaded from API.
+        $group = $this->cache->get($cacheKey, true);
+        return null !== $group ? $group : false;
     }
 
+    /**
+	 * Get a list of all users in a group
+     *
+	 * @param string $gid
+	 * @param string $search
+	 * @param int $limit
+	 * @param int $offset
+	 * @return array an array of user ids
+	 */
     public function usersInGroup($gid, $search = '', $limit = null, $offset = 0) {
         $cacheKey = self::class . 'group_users_' . $gid . '_' . $search . '_'
             . $limit . '_' . $offset;
         $uids = $this->cache->get($cacheKey);
 
-        if ($uids !== NULL) {
+        if ($uids !== null) {
             return $uids;
         }
 
@@ -237,15 +315,31 @@ final class GroupBackend extends ABackend implements
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'groupmemberships?' .$query, $this->config->getApiKey());
 
-        if ($httpcode !== 200) {
-          return [];
+        try {
+            if ($httpcode === 200) {
+                $uids = $this->parseUsersFromGroupMembershipListResponse($response, $limit === null);
+                $this->cache->set($cacheKey, $uids, 60);
+                return $uids;
+            }
+        } catch ($e) {
+            $httpcode = $e->getMessage();
         }
 
-        $uids = $this->parseUsersFromGroupMembershipListResponse($response, $limit === null);
-        $this->cache->set($cacheKey, $uids, 60);
-        return $uids;
+        $this->logger->error(
+            "GroupBackend: usersInGroup($gid, $search, $limit, $offset) with API response code $httpcode", ['app' => $this->appName]
+        );
+
+        // Return outdated values if no data could be loaded from API.
+        $uids = $this->cache->get($cacheKey, true);
+        return null !== $uids ? $uids : [];
     }
 
+    /**
+     * Get if user has admin permissions
+     * 
+     * @param string $uid user ID
+     * @return bool if user has admin rights or not
+     */
     public function isAdmin(string $uid = null): bool {
         $cacheKey = self::class . 'admin_' . $uid;
         $admin = $this->cache->get($cacheKey);
@@ -265,6 +359,12 @@ final class GroupBackend extends ABackend implements
         return $admin;
     }
 
+    /**
+     * Get details about a group
+     * 
+     * @param string $gid group ID
+     * @return array with additional information about the group
+     */
     public function getGroupDetails(string $gid): array {
         $group = $this->getGroup($gid);
 
@@ -291,6 +391,8 @@ final class GroupBackend extends ABackend implements
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
                 $groups = array_merge($groups, $this->parseGroupListResponse($response2, true));
+            } else {
+                throw new Exception($httpcode);
             }
         }
 
@@ -308,6 +410,8 @@ final class GroupBackend extends ABackend implements
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
                 $gids = array_merge($gids, $this->parseGroupsFromGroupMembershipListResponse($response2, true));
+            } else {
+                throw new Exception($httpcode);
             }
         }
 
@@ -325,6 +429,8 @@ final class GroupBackend extends ABackend implements
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
                 $uids = array_merge($uids, $this->parseUsersFromGroupMembershipListResponse($response2, true));
+            } else {
+                throw new Exception($httpcode);
             }
         }
 

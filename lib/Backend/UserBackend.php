@@ -36,7 +36,7 @@ use OCP\User\Backend\IGetDisplayNameBackend;
 use OCP\User\Backend\IProvideAvatarBackend;
 
 /**
- * The AMIV API user backend manager.
+ * The AMIV API user backend
  */
 final class UserBackend extends ABackend implements
     ICheckPasswordBackend,
@@ -76,6 +76,10 @@ final class UserBackend extends ABackend implements
         $this->logger = $logger;
     }
 
+    /**
+	 * Check if a user list is available or not
+	 * @return boolean if users can be listed or not
+	 */
     public function hasUserListings() {
         return false;
     }
@@ -101,11 +105,19 @@ final class UserBackend extends ABackend implements
         }
 
         $this->logger->error(
-          'UserBackend: countUsers() with API response code ' .$httpcode, ['app' => $this->appName]
+          "UserBackend: countUsers() with API response code $httpcode", ['app' => $this->appName]
         );
-        return 0;
+
+        // Return outdated values if no data could be loaded from API.
+        $count = $this->cache->get($cacheKey, true);
+        return null !== $count ? $count : 0;
     }
 
+    /**
+	 * check if a user exists
+	 * @param string $uid the username
+	 * @return boolean
+	 */
     public function userExists($uid) {
         $user = $this->getUser($uid);
         return $user !== false && $user !== null;
@@ -125,9 +137,8 @@ final class UserBackend extends ABackend implements
 
         if ($cachedUser !== null) {
             if ($cachedUser === false) {
-              return false;
+                return null;
             }
-
             $user = new User();
             foreach ($cachedUser as $key => $value) {
                 $user->{$key} = $value;
@@ -138,7 +149,6 @@ final class UserBackend extends ABackend implements
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$uid, $this->config->getApiKey());
         if ($httpcode === 200) {
             if ($uid !== $response->_id) {
-                $this->cache->set($cacheKey, false);
                 return false;
             }
             $user = User::fromApiUserObject($response);
@@ -147,11 +157,34 @@ final class UserBackend extends ABackend implements
         }
         if ($httpcode === 404) {
           $this->cache->set($cacheKey, false);
-          return false;
+          return null;
         }
-        return null;
+
+        $this->logger->error(
+            "UserBackend: getUser($uid) with API response code $httpcode", ['app' => $this->appName]
+        );
+
+        // Return outdated values if no data could be loaded from API.
+        $cachedUser = $this->cache->get($cacheKey, true);
+        if ($cachedUser !== null) {
+            if ($cachedUser === false) {
+                return null;
+            }
+            $user = new User();
+            foreach ($cachedUser as $key => $value) {
+                $user->{$key} = $value;
+            }
+            return $user;
+        }
+        return false;
     }
 
+    /**
+     * Get the display name for a user.
+     * 
+     * @param string $uid user ID of the user
+	 * @return string display name
+	 */
     public function getDisplayName($uid): string {
         $user = $this->getUser($uid);
 
@@ -205,6 +238,14 @@ final class UserBackend extends ABackend implements
         return false;
     }
 
+    /**
+	 * Get a list of all display names and user ids.
+	 *
+	 * @param string $search
+	 * @param string|null $limit
+	 * @param string|null $offset
+	 * @return array an array of all displayNames (value) and the corresponding uids (key)
+	 */
     public function getDisplayNames($search = '', $limit = null, $offset = 0): array {
         $users = $this->getUsers($search, $limit, $offset);
 
@@ -216,6 +257,14 @@ final class UserBackend extends ABackend implements
         return $names;
     }
 
+    /**
+	 * Get a list of all users
+	 *
+	 * @param string $search
+	 * @param null|int $limit
+	 * @param null|int $offset
+	 * @return string[] an array of all uids
+	 */
     public function getUsers($search = '', $limit = null, $offset = 0): array {
         $cacheKey = self::class . 'users_' . $search . '_' . $limit . '_' . $offset;
         $cachedUsers = $this->cache->get($cacheKey);
@@ -248,16 +297,22 @@ final class UserBackend extends ABackend implements
         }
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
-        if ($httpcode === 200) {
-            $users = $this->parseUserListResponse($response, $limit === null);
-            $this->cache->set($cacheKey, $users);
-            return $users;
+        try {
+            if ($httpcode === 200) {
+                $users = $this->parseUserListResponse($response, $limit === null);
+                $this->cache->set($cacheKey, $users);
+                return $users;
+            }
+        } catch ($e) {
+            $httpcode = $e->getMessage();
         }
 
         $this->logger->error(
           "UserBackend: getUsers($search, $limit, $offset) with API response code " .$httpcode, ['app' => $this->appName]
         );
-        return [];
+        
+        $cachedUsers = $this->cache->get($cacheKey, true);
+        return null !== $cachedUsers ? $cachedUsers : [];
     }
 
     private function parseUserListResponse($response, $recursive) {
@@ -272,6 +327,8 @@ final class UserBackend extends ABackend implements
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
                 $users = array_merge($users, $this->parseUserListResponse($response2, true));
+            } else {
+                throw new Exception($httpcode);
             }
         }
 

@@ -3,7 +3,9 @@
  * Nextcloud - user_sql
  *
  * @copyright 2018 Marcin Łojewski <dev@mlojewski.me>
+ * @copyright 2018 Sandro Lutz <code@temparus.ch>
  * @author    Marcin Łojewski <dev@mlojewski.me>
+ * @author    Sandro Lutz <code@temparus.ch>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -32,6 +34,7 @@ use OCP\ILogger;
  * If there's no distributed cache available NULL cache is used.
  *
  * @author Marcin Łojewski <dev@mlojewski.me>
+ * @author Sandro Lutz <code@temparus.ch>
  */
 class Cache
 {
@@ -46,7 +49,7 @@ class Cache
      * @param string  $AppName The application name.
      * @param ILogger $logger  The logger instance.
      */
-    public function __construct($AppName, ILogger $logger)
+    public function __construct($appName, ILogger $logger)
     {
         $factory = \OC::$server->getMemCacheFactory();
         
@@ -55,7 +58,7 @@ class Cache
         } else {
             $logger->warning(
                 "There's no distributed cache available, fallback to null cache.",
-                ["app" => $AppName]
+                ["app" => $appName]
             );
             $this->cache = new NullCache();
         }
@@ -65,11 +68,17 @@ class Cache
      * Fetch a value from the cache memory.
      *
      * @param string $key The cache value key.
+     * @param bool   $allowExpired Allows to return an expired value found in the cache.
      *
      * @return mixed|NULL Cached value or NULL if there's no value stored.
      */
-    public function get($key)
+    public function get($key, $allowExpired = false)
     {
+        if (!$allowExpired && null === $this->cache->get($key ."_valid")
+        {
+            // return null if the stored value has expired
+            return null;
+        }
         return $this->cache->get($key);
     }
 
@@ -84,7 +93,7 @@ class Cache
      */
     public function set($key, $value, $ttl = 3600)
     {
-        return $this->cache->set($key, $value, $ttl);
+        return $this->cache->get($key ."_valid", true, $ttl) && $this->cache->set($key, $value, 0);
     }
 
     /**
