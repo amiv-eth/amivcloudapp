@@ -79,6 +79,14 @@ final class MemberGroupBackend extends ABackend implements
         ];
     }
 
+    /**
+	 * Get a list of all groups
+     *
+	 * @param string $search
+	 * @param int $limit
+	 * @param int $offset
+	 * @return array an array of group IDs
+	 */
     public function getGroups($search = '', $limit = null, $offset = 0) {
         $groups = [];
         foreach ($this->groups as $group) {
@@ -90,6 +98,12 @@ final class MemberGroupBackend extends ABackend implements
         return $groups;
     }
 
+    /**
+     * Counts the number of users in the group
+     * 
+     * @param string $gid group ID
+     * @param string $search search string (not used at the moment)
+     */
     public function countUsersInGroup(string $gid, string $search = ''): int {
         $cacheKey = self::class . 'users#_' . $gid . '_' . $search;
         $count = $this->cache->get($cacheKey);
@@ -125,9 +139,19 @@ final class MemberGroupBackend extends ABackend implements
         $this->logger->error(
           "MemberGroupBackend: countUsersInGroup($gid, $search) with API response code $httpcode", ['app' => $this->appName]
         );
-        return 0;
+
+        // Return outdated values if no data could be loaded from API.
+        $count = $this->cache->get($cacheKey, true);
+        return null !== $count ? $count : 0;
     }
 
+    /**
+	 * Checks whether the user is member of a group or not.
+     *
+	 * @param string $uid uid of the user
+	 * @param string $gid gid of the group
+	 * @return bool
+	 */
     public function inGroup($uid, $gid) {
         $cacheKey = self::class . 'user_group_' . $uid . '_' . $gid;
         $inGroup = $this->cache->get($cacheKey);
@@ -141,7 +165,15 @@ final class MemberGroupBackend extends ABackend implements
         return $inGroup;
     }
 
+    /**
+	 * Get all groups a user belongs to
+     *
+	 * @param string $uid Name of the user
+	 * @return array an array of group names
+	 */
     public function getUserGroups($uid) {
+        if (strlen($uid) === 0) return [];
+
         $cacheKey = self::class . 'user_groups_' . $uid;
         $gids = $this->cache->get($cacheKey);
 
@@ -149,23 +181,36 @@ final class MemberGroupBackend extends ABackend implements
             return $gids;
         }
 
-        if (strlen($uid) === 0) {
+        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$uid, $this->config->getApiKey());
+        if ($httpcode === 200) {
+            $gids = [];
+            if ($response->membership !== 'none') {
+                $gids = ['members', $response->membership];
+            }
+            $this->cache->set($cacheKey, $gids, 60);
+            return $gids;
+        } else if ($httpcode === 404) {
+            // If the user does not exist in the database, it is most probably a local user account.
+            // Therefore we can ignore this error and just return an empty list.
             return [];
         }
 
-        list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users/' .$uid, $this->config->getApiKey());
-        if ($httpcode !== 200) {
-          return [];
-        }
+        $this->logger->error(
+            "MemberGroupBackend: getUserGroups($uid) with API response code $httpcode", ['app' => $this->appName]
+        );
 
-        $gids = [];
-        if ($response->membership !== 'none') {
-            $gids = ['members', $response->membership];
-        }
-        $this->cache->set($cacheKey, $gids, 60);
-        return $gids;
+        // Return outdated values if no data could be loaded from API.
+        $gids = $this->cache->get($cacheKey, true);
+        return null !== $gids ? $gids : [];
+
     }
 
+    /**
+	 * Check if a group exists
+     *
+	 *  @param string $gid
+	 * @return bool
+	 */
     public function groupExists($gid) {
         $group = $this->getGroup($gid);
 
@@ -191,9 +236,17 @@ final class MemberGroupBackend extends ABackend implements
         }
 
         return false;
-
     }
 
+    /**
+	 * Get a list of all users in a group
+     *
+	 * @param string $gid
+	 * @param string $search
+	 * @param int $limit
+	 * @param int $offset
+	 * @return array an array of user ids
+	 */
     public function usersInGroup($gid, $search = '', $limit = null, $offset = 0) {
         $cacheKey = self::class . 'group_users_' . $gid . '_' . $search . '_'
             . $limit . '_' . $offset;
@@ -233,19 +286,41 @@ final class MemberGroupBackend extends ABackend implements
 
         list($httpcode, $response) = ApiUtil::get($this->config->getApiServerUrl(), 'users?' .$query, $this->config->getApiKey());
 
-        if ($httpcode !== 200) {
-          return [];
+        try {
+            if ($httpcode === 200) {
+                $uids = $this->parseUsersFromUsersListResponse($response, $limit === null);
+                $this->cache->set($cacheKey, $uids, 60);
+                return $uids;
+            }
+        } catch(Exception $e) {
+            $httpcode = $e->getMessage();
         }
 
-        $uids = $this->parseUsersFromUsersListResponse($response, $limit === null);
-        $this->cache->set($cacheKey, $uids, 60);
-        return $uids;
+        $this->logger->error(
+            "MemberGroupBackend: usersInGroup($gid, $search, $limit, $offset) with API response code $httpcode", ['app' => $this->appName]
+        );
+
+        // Return outdated values if no data could be loaded from API.
+        $uids = $this->cache->get($cacheKey, true);
+        return null !== $uids ? $uids : [];
     }
 
+    /**
+     * Get if user has admin permissions
+     * 
+     * @param string $uid user ID
+     * @return bool if user has admin rights or not
+     */
     public function isAdmin(string $uid = null): bool {
         return false;
     }
 
+    /**
+     * Get details about a group
+     * 
+     * @param string $gid group ID
+     * @return array with additional information about the group
+     */
     public function getGroupDetails(string $gid): array {
         $group = $this->getGroup($gid);
 
@@ -265,6 +340,8 @@ final class MemberGroupBackend extends ABackend implements
             list($httpcode, $response2) = ApiUtil::get($this->config->getApiServerUrl(), $response->_links->next->href, $this->config->getApiKey());
             if ($httpcode === 200) {
                 $uids = array_merge($uids, $this->parseUsersFromUsersListResponse($response2, true));
+            } else {
+                throw new Exception($httpcode);
             }
         }
 
