@@ -24,6 +24,11 @@
 
 namespace OCA\AmivCloudApp;
 
+/**
+ * ApiUtil class
+ *
+ * Simplifies requests to the AMIV API.
+ */
 class ApiUtil {
 
     /**

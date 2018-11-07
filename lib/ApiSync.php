@@ -32,6 +32,14 @@ use OCP\IGroupManager;
 use OCP\IUserManager;
 use OCP\ILogger;
 
+/**
+ * ApiSync class
+ *
+ * Handles all synchronization tasks with the API.
+ * 
+ * 1. Synchronizes admin rights from API to Nextcloud.
+ * 2. Synchronizes group folders on Nextcloud with the API.
+ */
 class ApiSync {
 
     /** @var string */
@@ -70,7 +78,7 @@ class ApiSync {
     }
 
     /**
-     * Sync admin users from API
+     * Sync users with admin rights (members of groups specified as admin groups) from API
      */
     public function syncAdminUsers() {
         list($httpcode, $response) = ApiUtil::get(
@@ -124,7 +132,9 @@ class ApiSync {
     }
 
     /**
-     * Sync group shares
+     * Sync group shares.
+     *
+     * Does only unshare a deleted group share and mark as deleted.
      */
     public function syncShares() {
         $addedShares = [];
@@ -172,6 +182,8 @@ class ApiSync {
 
     /**
      * Clean up old shares
+     * 
+     * This will remove the share after the configured retention time.
      */
     public function cleanupShares() {
         $thresholdTime = time() - $this->config->getGroupShareRetention();
@@ -262,6 +274,9 @@ class ApiSync {
         }
     }
 
+    /**
+     * Create the Share for an existing group folder.
+     */
     private function createGroupFolderShare($folder, $groupId) {
         // share said folder with the given groupId
         $share = $this->shareManager->newShare();
@@ -276,6 +291,9 @@ class ApiSync {
         $this->logger->info('ApiSync-11: Shared folder "' .$folder->getName() .'" created', ['app' => $this->appName]);
     }
 
+    /**
+     * Remove all Shares from a given folder.
+     */
     private function removeSharesFromFolder($folder) {
         // Remove group shares
         $shares = $this->shareManager->getSharesBy($this->config->getFileOwnerAccount(), \OCP\Share::SHARE_TYPE_GROUP, $folder);

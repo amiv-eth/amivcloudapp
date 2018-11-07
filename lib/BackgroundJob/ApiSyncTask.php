@@ -27,6 +27,18 @@ use OCA\AmivCloudApp\ApiSync;
 use OC\BackgroundJob\TimedJob;
 
 
+/**
+ * ApiSyncTask class
+ *
+ * This is a repeated background task executed every 15 minutes
+ * fulfilling the following tasks:
+ *
+ * 1. Synchronize the group folders with the group configuration within the API.
+ *    This created and removes group folders.
+ * 2. Synchronize admin users with the API.
+ *    This adds all users which are members of a configured admin group to the
+ *    local admin group of Nextcloud.
+ */
 class ApiSyncTask extends TimedJob {
 
     /** @var ApiSync */

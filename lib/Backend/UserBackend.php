@@ -37,6 +37,8 @@ use OCP\User\Backend\IProvideAvatarBackend;
 
 /**
  * The AMIV API user backend
+ *
+ * This is the interface to the API user management used by Nextcloud.
  */
 final class UserBackend extends ABackend implements
     ICheckPasswordBackend,

@@ -34,6 +34,8 @@ use OCP\ILogger;
 
 /**
  * The AMIV API membership group backend manager
+ *
+ * This is the interface used by Nextcloud to make up groups for the membership status found in the API.
  */
 final class MemberGroupBackend extends ABackend implements
     ICountUsersBackend,

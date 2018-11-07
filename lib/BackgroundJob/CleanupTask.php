@@ -28,6 +28,15 @@ use OC\BackgroundJob\TimedJob;
 use OCP\BackgroundJob\IJobList;
 
 
+/**
+ * CleanupTask class
+ *
+ * This is a repeated background task executed once a day
+ * fulfilling the following task:
+ *
+ * 1. Removes all group folders which are not configured as group shared
+ *    anymore for more than specified with `amiv.group_share_retention` in seconds.
+ */
 class CleanupTask extends TimedJob {
 
 	/** @var ApiSync */

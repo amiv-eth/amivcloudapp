@@ -1,4 +1,25 @@
 <?php
+/**
+ * @copyright Copyright (c) 2018, AMIV an der ETH
+ *
+ * @author Sandro Lutz <code@temparus.ch>
+ *
+ * @license AGPL-3.0
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License, version 3,
+ * as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License, version 3,
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>
+ *
+ */
+
 
 namespace OCA\AmivCloudApp\Controller;
 
@@ -18,7 +39,13 @@ use OCA\AmivCloudApp\AppConfig;
 use OCA\AmivCloudApp\ApiSync;
 use OCA\AmivCloudApp\ApiUtil;
 
+/**
+ * LoginController class
+ *
+ * Page controller to process the response from the OAuth login of the AMIV API.
+ */
 class LoginController extends Controller {
+
     /** @var AppConfig */
     private $config;
     /** @var ISession */
@@ -57,13 +84,16 @@ class LoginController extends Controller {
     }
 
     /**
+     * Public page to process the OAuth response.
+     * It needs to be accessible to non-authenticated users!
+     * 
      * @PublicPage
      * @NoCSRFRequired
      */
     public function oauth() {
         if (!isset($_GET['access_token']) || !isset($_GET['state']) || 
           !$this->session->exists('amiv.oauth_state') || $_GET['state'] !== $this->session->get('amiv.oauth_state')) {
-            throw new LoginException('Bad request');
+            throw new LoginException('Bad request. Please try again.');
         }
         $token = $_GET['access_token'];
 
@@ -75,7 +105,7 @@ class LoginController extends Controller {
                 'OAuth Authentication failed (API response code: ' . $httpcode .')',
                 ['app' => $this->appName]
             );
-            throw new LoginException('Authentication failed. The token may be invalid.');
+            throw new LoginException('Authentication failed. The token may be invalid. Please contact it@amiv.ethz.ch for assistance.');
         }
 
         $this->session->set('amiv.api_token', $token);
@@ -85,6 +115,9 @@ class LoginController extends Controller {
         return $this->login($apiUser, $token);
     }
 
+    /**
+     * Does the actual login process within Nextcloud.
+     */
     private function login($apiUser) {
         $nextcloudUser = $this->userManager->get($apiUser->_id);
 
@@ -97,7 +130,7 @@ class LoginController extends Controller {
                 'OAuth Authentication failed for user ' . $apiUser->_id,
                 ['app' => $this->appName]
             );
-            throw new LoginException('Authentication failed. The token may be invalid.');
+            throw new LoginException('Authentication failed. The token may be invalid. Please contact it@amiv.ethz.ch for assistance.');
         }
 
         $this->userSession->completeLogin($nextcloudUser, ['loginName' => $nextcloudUser->getUID(), 'password' => ''], false);

@@ -13,7 +13,7 @@
 'amiv.oauth_autoredirect' => true,      // Automatically redirect to OAuth login page.
 'amiv.file_owner' => 'amivadmin',       // Owner of all group folders
 'amiv.api_admin_groups' => ['<admin-group-id>'],
-'amiv.group_share_retention' => 172800  // how long deleted group folders are kept.
+'amiv.group_share_retention' => 172800  // how long deleted group folders are kept in seconds.
 ```
 
 The provided API key needs `read` permissions for `users`, `groups` and `groupmemberships`.
