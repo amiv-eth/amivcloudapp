@@ -177,7 +177,7 @@ final class MemberGroupBackend extends ABackend implements
         $cacheKey = self::class . 'user_groups_' . $uid;
         $gids = $this->cache->get($cacheKey);
 
-        if ($gids !== null) {
+        if ($gids !== null && $gids !== "local") {
             return $gids;
         }
 
@@ -192,6 +192,7 @@ final class MemberGroupBackend extends ABackend implements
         } else if ($httpcode === 404) {
             // If the user does not exist in the database, it is most probably a local user account.
             // Therefore we can ignore this error and just return an empty list.
+            $this->cache->set($cacheKey, "local", 60);
             return [];
         }
 
@@ -201,8 +202,7 @@ final class MemberGroupBackend extends ABackend implements
 
         // Return outdated values if no data could be loaded from API.
         $gids = $this->cache->get($cacheKey, true);
-        return null !== $gids ? $gids : [];
-
+        return null !== $gids && "local" !== $gids ? $gids : [];
     }
 
     /**

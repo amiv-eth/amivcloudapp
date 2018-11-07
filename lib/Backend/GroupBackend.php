@@ -251,8 +251,8 @@ final class GroupBackend extends ABackend implements
         $cachedGroup = $this->cache->get($cacheKey);
 
         if ($cachedGroup !== null) {
-            if ($cachedGroup === false) {
-                return false;
+            if ($cachedGroup === "invalid") {
+                return null;
             }
 
             $group = new Group();
@@ -271,7 +271,7 @@ final class GroupBackend extends ABackend implements
         }
 
         if ($httpcode === 404) {
-            $this->cache->set($cacheKey, null);
+            $this->cache->set($cacheKey, "invalid");
             return null;
         }
 
@@ -281,7 +281,7 @@ final class GroupBackend extends ABackend implements
 
         // Return outdated values if no data could be loaded from API.
         $group = $this->cache->get($cacheKey, true);
-        return null !== $group ? $group : false;
+        return null !== $group && "invalid" !== $group ? $group : false;
     }
 
     /**

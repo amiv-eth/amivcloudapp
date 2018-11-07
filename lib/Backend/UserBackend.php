@@ -136,7 +136,7 @@ final class UserBackend extends ABackend implements
         $cachedUser = $this->cache->get($cacheKey);
 
         if ($cachedUser !== null) {
-            if ($cachedUser === false) {
+            if ($cachedUser === "local") {
                 return null;
             }
             $user = new User();
@@ -156,7 +156,7 @@ final class UserBackend extends ABackend implements
             return $user;
         }
         if ($httpcode === 404) {
-          $this->cache->set($cacheKey, false);
+          $this->cache->set($cacheKey, "local");
           return null;
         }
 
@@ -167,7 +167,7 @@ final class UserBackend extends ABackend implements
         // Return outdated values if no data could be loaded from API.
         $cachedUser = $this->cache->get($cacheKey, true);
         if ($cachedUser !== null) {
-            if ($cachedUser === false) {
+            if ($cachedUser === "local") {
                 return null;
             }
             $user = new User();
