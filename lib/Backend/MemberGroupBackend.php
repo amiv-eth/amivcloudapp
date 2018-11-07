@@ -189,6 +189,10 @@ final class MemberGroupBackend extends ABackend implements
             }
             $this->cache->set($cacheKey, $gids, 60);
             return $gids;
+        } else if ($httpcode === 404) {
+            // If the user does not exist in the database, it is most probably a local user account.
+            // Therefore we can ignore this error and just return an empty list.
+            return [];
         }
 
         $this->logger->error(
