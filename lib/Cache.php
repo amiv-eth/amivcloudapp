@@ -72,7 +72,7 @@ class Cache
      *
      * @return mixed|NULL Cached value or NULL if there's no value stored.
      */
-    public function get($key, $allowExpired = false)
+    public function get(string $key, bool $allowExpired = false)
     {
         if (!$allowExpired && null === $this->cache->get($key ."_valid"))
         {
@@ -91,9 +91,9 @@ class Cache
      *
      * @return bool TRUE on success, FALSE otherwise.
      */
-    public function set($key, $value, $ttl = 3600)
+    public function set(string $key, $value, int $ttl = 3600)
     {
-        return $this->cache->set($key ."_valid", true, $ttl) && $this->cache->set($key, $value, 0);
+        return $this->cache->set($key ."_valid", "valid", $ttl) && $this->cache->set($key, $value, 0);
     }
 
     /**
